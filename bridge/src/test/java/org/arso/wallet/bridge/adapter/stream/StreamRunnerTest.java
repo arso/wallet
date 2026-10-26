@@ -7,14 +7,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import org.arso.wallet.bridge.RecordingPublisher;
-import org.arso.wallet.bridge.TestLedger;
 import org.arso.wallet.bridge.application.Bridge;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.events.WithdrawRequest;
+import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.testing.DynamoDbLocal;
+import org.arso.wallet.testing.TestLedger;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ShardIteratorType;
 
 class StreamRunnerTest {
@@ -58,7 +61,7 @@ class StreamRunnerTest {
     @Test
     void unmappableEntryStallsTheShardAndNothingAfterItIsPublished() {
         var id = ledger.open();
-        ledger.putBrokenEntry(id, 900);
+        putBrokenEntry(id, 900);
         ledger.deposit(id, 100);
 
         var deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
@@ -76,6 +79,15 @@ class StreamRunnerTest {
         }
 
         assertThat(ledgerSeqs(publisher.sent)).doesNotContain(2L, 900L);
+    }
+
+    void putBrokenEntry(AccountId id, long seq) {
+        ledger.client.putItem(b -> b.tableName(ledger.table).item(Map.of(
+                "PK", AttributeValue.fromS(id.value()),
+                "SK", AttributeValue.fromS("LEDGER#%012d".formatted(seq)),
+                "account_id", AttributeValue.fromS(id.value()),
+                "seq", AttributeValue.fromN(Long.toString(seq)),
+                "event_type", AttributeValue.fromS("deposit"))));
     }
 
     void pollUntil(BooleanSupplier done) {

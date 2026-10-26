@@ -5,25 +5,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Clock;
 import java.util.UUID;
-import org.arso.wallet.ledger.application.PaymentTransitions;
-import org.arso.wallet.ledger.application.Transactions;
-import org.arso.wallet.ledger.domain.AccountId;
+import org.arso.wallet.api.config.WalletProperties;
+import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.domain.Actor;
-import org.arso.wallet.ledger.port.LedgerStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 class HoldReleaseTest extends ApiTest {
 
     @Autowired
-    LedgerStore store;
+    DynamoDbClient client;
 
     @Autowired
-    Transactions transactions;
+    WalletProperties properties;
 
     void hold(String accountId, String ref) {
-        new PaymentTransitions(store, transactions, Clock.systemUTC())
-                .hold(new AccountId(accountId), "NullPointerException", ref, Actor.COMPLETION_SERVICE);
+        new DynamoAccountHolds(client, properties.dynamodb().tableName(), Clock.systemUTC())
+                .holdAccount(accountId, "NullPointerException", ref, Actor.COMPLETION_SERVICE);
     }
 
     @Test

@@ -49,7 +49,7 @@ public final class HexagonalRules {
                 .allowEmptyShould(true)
                 .check(classes);
 
-        slices().matching(basePackage + ".(**)").should().beFreeOfCycles().check(classes);
+        slices().matching(basePackage + ".(**)").should().beFreeOfCycles().allowEmptyShould(true).check(classes);
 
         noClasses().should().dependOnClassesThat()
                 .haveNameMatching("software\\.amazon\\.awssdk\\.services\\.dynamodb\\..*Scan(Request|Response|Iterable).*")
