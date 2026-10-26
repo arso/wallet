@@ -23,5 +23,14 @@ subprojects {
         "testRuntimeOnly"(rootProject.libs.junit.launcher)
     }
 
-    tasks.withType<Test> { useJUnitPlatform() }
+    tasks.withType<Test> {
+        useJUnitPlatform()
+        jvmArgs("-Xshare:off", "--enable-native-access=ALL-UNNAMED")
+    }
+
+    tasks.withType<JavaExec> { jvmArgs("--enable-native-access=ALL-UNNAMED") }
+
+    plugins.withId("org.springframework.boot") {
+        tasks.named<Jar>("bootJar") { manifest { attributes("Enable-Native-Access" to "ALL-UNNAMED") } }
+    }
 }
