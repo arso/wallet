@@ -10,6 +10,7 @@ import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.domain.Actor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 class HoldReleaseTest extends ApiTest {
@@ -31,10 +32,10 @@ class HoldReleaseTest extends ApiTest {
         var paymentId = withdraw(id, UUID.randomUUID().toString(), 30).text("payment_id");
         hold(id, "verification-results/3/17");
 
-        assertError(deposit(id, UUID.randomUUID().toString(), 5, "tx-h-" + id), 409, "account_on_hold");
-        assertError(withdraw(id, UUID.randomUUID().toString(), 5), 409, "account_on_hold");
-        assertError(post("/internal/accounts/" + id + "/block", "{\"reason\":\"aml\"}"), 409, "account_on_hold");
-        assertError(post("/internal/accounts/" + id + "/unblock", "{\"reason\":\"aml\"}"), 409, "account_on_hold");
+        assertError(deposit(id, UUID.randomUUID().toString(), 5, "tx-h-" + id), HttpStatus.CONFLICT, "account_on_hold");
+        assertError(withdraw(id, UUID.randomUUID().toString(), 5), HttpStatus.CONFLICT, "account_on_hold");
+        assertError(post("/internal/accounts/" + id + "/block", "{\"reason\":\"aml\"}"), HttpStatus.CONFLICT, "account_on_hold");
+        assertError(post("/internal/accounts/" + id + "/unblock", "{\"reason\":\"aml\"}"), HttpStatus.CONFLICT, "account_on_hold");
 
         assertThat(post("/payments/" + paymentId + "/cancel", null).text("status")).isEqualTo("CANCELLED");
         assertThat(balance(id)).isEqualTo(100);
@@ -44,10 +45,10 @@ class HoldReleaseTest extends ApiTest {
     @Test
     void releaseSetsTheChosenStatus() {
         var id = account(10);
-        assertError(release(id, "ACTIVE", false), 409, "account_not_on_hold");
+        assertError(release(id, "ACTIVE", false), HttpStatus.CONFLICT, "account_not_on_hold");
         hold(id, "ref-1");
 
-        assertError(release(id, "ON_HOLD", false), 400, "invalid_request");
+        assertError(release(id, "ON_HOLD", false), HttpStatus.BAD_REQUEST, "invalid_request");
         assertThat(release(id, "BLOCKED", false).text("status")).isEqualTo("BLOCKED");
     }
 
@@ -59,7 +60,7 @@ class HoldReleaseTest extends ApiTest {
         hold(id, "ref-2");
         hold(id, "ref-2");
 
-        assertError(release(id, "ACTIVE", false), 409, "confirm_required");
+        assertError(release(id, "ACTIVE", false), HttpStatus.CONFLICT, "confirm_required");
         var released = release(id, "ACTIVE", true);
         assertThat(released.text("status")).isEqualTo("ACTIVE");
         assertThat(released.number("version")).isEqualTo(6);

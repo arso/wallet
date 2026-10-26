@@ -7,6 +7,7 @@ import java.util.List;
 import java.time.Clock;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
+import org.arso.wallet.ledger.application.PaymentTransitions;
 import org.arso.wallet.ledger.application.Transactions;
 import org.arso.wallet.ledger.application.Transactions.Plan;
 import org.arso.wallet.ledger.domain.Account;
@@ -19,6 +20,8 @@ import org.arso.wallet.ledger.domain.Money;
 import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.domain.PaymentStatus;
+import org.arso.wallet.ledger.domain.Verification;
+import org.arso.wallet.ledger.port.StepWrite;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
 import org.arso.wallet.ledger.port.TxItem.PutPayment;
@@ -78,6 +81,11 @@ public final class TestLedger {
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new PutPayment(payment)),
                     payment);
         });
+    }
+
+    public Payment executing(Payment payment) {
+        var write = (StepWrite.Recorded) store.recordVerification(payment.id(), "aml", new Verification(true, null, now(), now(), false));
+        return new PaymentTransitions(store, transactions, Clock.systemUTC()).markExecuting(write.payment(), Actor.COMPLETION_SERVICE);
     }
 
     public void block(AccountId id) {

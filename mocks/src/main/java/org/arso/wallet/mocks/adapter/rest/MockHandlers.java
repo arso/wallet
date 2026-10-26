@@ -3,6 +3,7 @@ package org.arso.wallet.mocks.adapter.rest;
 import java.util.Map;
 import org.arso.wallet.mocks.application.BeneficiaryDirectory;
 import org.arso.wallet.mocks.application.TransferDesk;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
@@ -30,7 +31,7 @@ public final class MockHandlers {
 
     private ServerResponse beneficiary(ServerRequest req) {
         return beneficiaries.find(req.pathVariable("id"))
-                .map(b -> json(200, b))
+                .map(b -> json(HttpStatus.OK, b))
                 .orElseGet(() -> ServerResponse.notFound().build());
     }
 
@@ -38,15 +39,15 @@ public final class MockHandlers {
         var key = req.headers().firstHeader("Idempotency-Key");
         var body = req.body(TransferRequest.class);
         if (key == null || body.beneficiaryId() == null) {
-            return json(400, Map.of("error", "invalid_request", "message", "Idempotency-Key and beneficiary_id are required"));
+            return json(HttpStatus.BAD_REQUEST, Map.of("error", "invalid_request", "message", "Idempotency-Key and beneficiary_id are required"));
         }
         return switch (transfers.transfer(key, body.beneficiaryId())) {
-            case TransferDesk.Result.Sent(var externalTxId) -> json(200, Map.of("external_tx_id", externalTxId));
-            case TransferDesk.Result.Rejected(var reason) -> json(422, Map.of("error", "transfer_rejected", "message", reason));
+            case TransferDesk.Result.Sent(var externalTxId) -> json(HttpStatus.OK, Map.of("external_tx_id", externalTxId));
+            case TransferDesk.Result.Rejected(var reason) -> json(HttpStatus.UNPROCESSABLE_CONTENT, Map.of("error", "transfer_rejected", "message", reason));
         };
     }
 
-    private static ServerResponse json(int status, Object body) {
+    private static ServerResponse json(HttpStatus status, Object body) {
         return ServerResponse.status(status).contentType(MediaType.APPLICATION_JSON).body(body);
     }
 }

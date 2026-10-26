@@ -1,5 +1,6 @@
 package org.arso.wallet.worker;
 
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
@@ -204,7 +205,7 @@ class DispatchTest extends PoolTest {
             try {
                 Thread.sleep(20);
                 if (Instant.now().isBefore(outageEnds)) {
-                    throw ErrorClassifierTest.dynamo(503, "ServiceUnavailable");
+                    throw ErrorClassifierTest.dynamo(HTTP_UNAVAILABLE, "ServiceUnavailable");
                 }
                 return Outcome.DONE;
             } finally {

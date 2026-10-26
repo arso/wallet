@@ -1,5 +1,6 @@
 package org.arso.wallet.ledger.adapter.dynamodb;
 
+import static java.net.HttpURLConnection.HTTP_ACCEPTED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
@@ -28,7 +29,7 @@ class TxOutcomesTest {
 
     static final Instant NOW = Instant.parse("2026-10-26T12:00:00.000Z");
     static final Account.Change OPENED = Account.open(AccountId.random(), Currency.USD, NOW);
-    static final StoredResponse STORED = new StoredResponse("hash", 202, "{}");
+    static final StoredResponse STORED = new StoredResponse("hash", HTTP_ACCEPTED, "{}");
     static final List<TxItem> ITEMS = List.of(
             new PutAccount(OPENED.account()), new PutEntry(OPENED.entry()), new PutResponse("key", STORED, NOW));
 

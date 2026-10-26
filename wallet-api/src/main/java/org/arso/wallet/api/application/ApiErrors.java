@@ -1,5 +1,10 @@
 package org.arso.wallet.api.application;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
+
 import java.util.Optional;
 import org.arso.wallet.api.application.Views.ErrorView;
 import org.arso.wallet.api.port.BeneficiaryUnavailableException;
@@ -9,6 +14,8 @@ import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.port.TransientStoreException;
 
 public final class ApiErrors {
+
+    private static final int HTTP_UNPROCESSABLE_CONTENT = 422;
 
     private final JsonWriter json;
 
@@ -20,9 +27,9 @@ public final class ApiErrors {
     public Optional<ApiResponse> of(RuntimeException e) {
         return Optional.ofNullable(switch (e) {
             case DomainException d -> response(status(d.code()), d.code().name().toLowerCase(), d.getMessage());
-            case LockRetriesExhaustedException _ -> response(503, "lock_retries_exhausted", "try again");
-            case TransientStoreException _ -> response(503, "store_unavailable", "try again");
-            case BeneficiaryUnavailableException _ -> response(503, "beneficiary_unavailable", "try again");
+            case LockRetriesExhaustedException _ -> response(HTTP_UNAVAILABLE, "lock_retries_exhausted", "try again");
+            case TransientStoreException _ -> response(HTTP_UNAVAILABLE, "store_unavailable", "try again");
+            case BeneficiaryUnavailableException _ -> response(HTTP_UNAVAILABLE, "beneficiary_unavailable", "try again");
             default -> null;
         });
     }
@@ -33,11 +40,11 @@ public final class ApiErrors {
 
     private static int status(DomainException.Code code) {
         return switch (code) {
-            case INVALID_REQUEST, INVALID_AMOUNT, INVALID_CURRENCY, CURRENCY_MISMATCH -> 400;
-            case NOT_FOUND -> 404;
-            case INSUFFICIENT_FUNDS -> 422;
+            case INVALID_REQUEST, INVALID_AMOUNT, INVALID_CURRENCY, CURRENCY_MISMATCH -> HTTP_BAD_REQUEST;
+            case NOT_FOUND -> HTTP_NOT_FOUND;
+            case INSUFFICIENT_FUNDS -> HTTP_UNPROCESSABLE_CONTENT;
             case ACCOUNT_BLOCKED, ACCOUNT_ON_HOLD, ACCOUNT_NOT_ON_HOLD, CONFIRM_REQUIRED, INVALID_TRANSITION,
-                    NOT_CANCELLABLE, DUPLICATE_DEPOSIT -> 409;
+                    NOT_CANCELLABLE, DUPLICATE_DEPOSIT -> HTTP_CONFLICT;
         };
     }
 }
