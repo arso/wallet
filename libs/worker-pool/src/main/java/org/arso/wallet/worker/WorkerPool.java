@@ -56,6 +56,7 @@ public final class WorkerPool implements Runnable {
     private final List<BlockingQueue<ConsumerRecord<String, byte[]>>> queues = new ArrayList<>();
     private final AtomicLong oldestOpenMillis = new AtomicLong();
     private volatile boolean running = true;
+    private Thread poller;
     private volatile boolean circuitOpen;
 
     public WorkerPool(
@@ -109,9 +110,20 @@ public final class WorkerPool implements Runnable {
         circuitOpen = open;
     }
 
+    public void start() {
+        poller = Thread.ofPlatform().name("worker-poll-" + settings.service()).start(this);
+    }
+
     public void stop() {
         running = false;
         consumer.wakeup();
+        if (poller != null && poller != Thread.currentThread()) {
+            try {
+                poller.join(settings.shutdownWait().plusSeconds(5));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     @Override

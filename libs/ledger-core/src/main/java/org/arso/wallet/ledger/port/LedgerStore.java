@@ -8,6 +8,7 @@ import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.LedgerEntry;
 import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.PaymentId;
+import org.arso.wallet.ledger.domain.Verification;
 
 public interface LedgerStore {
 
@@ -16,6 +17,9 @@ public interface LedgerStore {
     Optional<Payment> findPayment(PaymentId id);
 
     Optional<LedgerEntry> findEntry(AccountId id, long seq);
+
+    /** One write, no read: sets the step while the payment is PENDING or EXECUTING, else stores it late. */
+    StepWrite recordVerification(PaymentId id, String step, Verification verification);
 
     List<LedgerEntry> entries(AccountId id, Long beforeSeq, int limit);
 

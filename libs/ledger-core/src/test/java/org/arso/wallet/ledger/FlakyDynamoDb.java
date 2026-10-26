@@ -16,6 +16,8 @@ import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsResponse;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 /** Real DynamoDB client with scripted transaction failures, for cases DynamoDB Local cannot produce. */
 public final class FlakyDynamoDb implements DynamoDbClient {
@@ -68,6 +70,11 @@ public final class FlakyDynamoDb implements DynamoDbClient {
     @Override
     public PutItemResponse putItem(PutItemRequest request) {
         return delegate.putItem(request);
+    }
+
+    @Override
+    public UpdateItemResponse updateItem(UpdateItemRequest request) {
+        return delegate.updateItem(request);
     }
 
     @Override

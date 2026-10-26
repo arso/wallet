@@ -15,8 +15,11 @@ import org.arso.wallet.ledger.domain.AccountStatus;
 import org.arso.wallet.ledger.domain.LedgerEntry;
 import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.PaymentId;
+import org.arso.wallet.ledger.domain.PaymentStatus;
 import org.arso.wallet.ledger.domain.Timestamps;
+import org.arso.wallet.ledger.domain.Verification;
 import org.arso.wallet.ledger.port.LedgerStore;
+import org.arso.wallet.ledger.port.StepWrite;
 import org.arso.wallet.ledger.port.StoredResponse;
 import org.arso.wallet.ledger.port.TransientStoreException;
 import org.arso.wallet.ledger.port.TxItem;
@@ -35,6 +38,7 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.dynamodb.model.Put;
 import software.amazon.awssdk.services.dynamodb.model.RequestLimitExceededException;
+import software.amazon.awssdk.services.dynamodb.model.ReturnValue;
 import software.amazon.awssdk.services.dynamodb.model.ReturnValuesOnConditionCheckFailure;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
@@ -69,6 +73,46 @@ public final class DynamoLedgerStore implements LedgerStore {
     @Override
     public Optional<LedgerEntry> findEntry(AccountId id, long seq) {
         return get(Items.ledgerKey(id, seq)).map(Items::entry);
+    }
+
+    @Override
+    public StepWrite recordVerification(PaymentId id, String step, Verification verification) {
+        try {
+            return new StepWrite.Recorded(setStep(id, step, verification, true));
+        } catch (ConditionalCheckFailedException e) {
+            if (!e.hasItem() || e.item().isEmpty()) {
+                return new StepWrite.NotFound();
+            }
+            var current = Items.payment(e.item());
+            if (current.verifications().containsKey(step)) {
+                return new StepWrite.Duplicate(current);
+            }
+            try {
+                return new StepWrite.Late(setStep(id, step, verification.markLate(), false));
+            } catch (ConditionalCheckFailedException again) {
+                return new StepWrite.Duplicate(again.hasItem() ? Items.payment(again.item()) : current);
+            }
+        }
+    }
+
+    private Payment setStep(PaymentId id, String step, Verification verification, boolean open) {
+        var condition = "attribute_exists(PK) AND attribute_not_exists(#vf.#st)" + (open ? " AND #s IN (:pending, :executing)" : "");
+        var names = new HashMap<>(Map.of("#vf", "verifications", "#st", step));
+        var values = new HashMap<>(Map.of(":v", AttributeValue.fromM(Items.verification(verification))));
+        if (open) {
+            names.put("#s", "status");
+            values.put(":pending", str(PaymentStatus.PENDING.name()));
+            values.put(":executing", str(PaymentStatus.EXECUTING.name()));
+        }
+        return Items.payment(client.updateItem(b -> b.tableName(table)
+                        .key(Items.paymentKey(id))
+                        .updateExpression("SET #vf.#st = :v")
+                        .conditionExpression(condition)
+                        .expressionAttributeNames(names)
+                        .expressionAttributeValues(values)
+                        .returnValues(ReturnValue.ALL_NEW)
+                        .returnValuesOnConditionCheckFailure(ALL_OLD))
+                .attributes());
     }
 
     @Override

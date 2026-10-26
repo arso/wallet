@@ -10,6 +10,7 @@ Plan: [docs/implementation-plan.md](docs/implementation-plan.md).
 - `libs/worker-pool` - Kafka consumer pool: KEYED / UNORDERED / DELAYED dispatch, offset tracking, failure policy, account holds
 - `wallet-api` - REST API
 - `bridge` - DynamoDB stream to Kafka (`ledger-events`, `withdraw-requests`)
+- `completion-service` - saga coordinator: records verification results, rejects or moves to `EXECUTING` and publishes `transfer-requests`
 - `mocks` - beneficiary, TransferService, verifiers, AML ([rules](mocks/README.md))
 
 ## Build and test

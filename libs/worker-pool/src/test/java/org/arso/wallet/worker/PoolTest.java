@@ -48,14 +48,10 @@ abstract class PoolTest {
     final String topic = "t-" + UUID.randomUUID();
     final String group = "g-" + UUID.randomUUID();
     private final List<WorkerPool> pools = new ArrayList<>();
-    private final List<Thread> threads = new ArrayList<>();
 
     @AfterEach
-    void stopPools() throws InterruptedException {
+    void stopPools() {
         pools.forEach(WorkerPool::stop);
-        for (var thread : threads) {
-            thread.join(Duration.ofSeconds(10));
-        }
     }
 
     WorkerSettings settings(Mode mode, HoldTarget target) {
@@ -72,7 +68,7 @@ abstract class PoolTest {
         config.putAll(consumerOverrides);
         var pool = new WorkerPool(config, settings, handler, ErrorClassifier.defaults(), ledger.holds, meters);
         pools.add(pool);
-        threads.add(Thread.ofVirtual().start(pool));
+        pool.start();
         return pool;
     }
 

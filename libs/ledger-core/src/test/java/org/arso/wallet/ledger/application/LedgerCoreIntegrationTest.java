@@ -41,6 +41,7 @@ import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.domain.RejectReason;
 import org.arso.wallet.ledger.domain.Verification;
 import org.arso.wallet.ledger.port.AccountHolds.Result;
+import org.arso.wallet.ledger.port.StepWrite;
 import org.arso.wallet.ledger.port.StoredResponse;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
@@ -126,6 +127,26 @@ class LedgerCoreIntegrationTest {
             assertThat(h.meta().balanceAfter()).isEqualTo(70);
         });
         assertLedgerMatches(held);
+    }
+
+    @Test
+    void stepIsWrittenOnceAndLateAfterTheFinalState() {
+        var id = account(100);
+        var payment = pendingWithdraw(id, 30, List.of("aml", "kyc"));
+
+        var recorded = store.recordVerification(payment.id(), "aml", verdict(true));
+        var duplicate = store.recordVerification(payment.id(), "aml", verdict(false));
+        payments.reject(payment.id(), RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
+        var late = store.recordVerification(payment.id(), "kyc", verdict(true));
+
+        assertThat(recorded).isInstanceOfSatisfying(StepWrite.Recorded.class, r -> assertThat(r.payment().verifications())
+                .containsOnlyKeys("aml"));
+        assertThat(duplicate).isInstanceOfSatisfying(StepWrite.Duplicate.class, d -> assertThat(
+                d.payment().verifications().get("aml").allowed()).isTrue());
+        assertThat(late).isInstanceOfSatisfying(StepWrite.Late.class, l -> assertThat(
+                l.payment().verifications().get("kyc").late()).isTrue());
+        assertThat(store.recordVerification(payment.id(), "kyc", verdict(true))).isInstanceOf(StepWrite.Duplicate.class);
+        assertThat(store.recordVerification(PaymentId.random(), "aml", verdict(true))).isInstanceOf(StepWrite.NotFound.class);
     }
 
     @Test
