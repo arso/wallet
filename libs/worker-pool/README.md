@@ -31,7 +31,7 @@ Revisit if the pool becomes hard to maintain: a hybrid (Spring container for the
 | transfer-executor (phase 8) | `transfer-requests` | `UNORDERED` | one slow TransferService call must not delay other payments |
 | timeout-checker (phase 9) | `withdraw-requests` | `DELAYED` | each record is handled at its due time |
 
-The bridge does not use it: it reads DynamoDB Streams, not Kafka.
+The verifier and AML mocks use it too (`UNORDERED`, `KEYED`), without holds. The bridge does not use it: it reads DynamoDB Streams, not Kafka.
 
 ## How
 

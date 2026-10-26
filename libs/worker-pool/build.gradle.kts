@@ -1,5 +1,6 @@
 plugins {
     application
+    `java-test-fixtures`
 }
 
 application {
@@ -14,7 +15,8 @@ dependencies {
     runtimeOnly(libs.logback.classic)
     runtimeOnly(libs.slf4j.jdk.platform.logging)
 
+    testFixturesApi(libs.testcontainers.kafka)
+
     testImplementation(testFixtures(project(":libs:ledger-core")))
     testImplementation(project(":libs:events"))
-    testImplementation(libs.testcontainers.kafka)
 }
