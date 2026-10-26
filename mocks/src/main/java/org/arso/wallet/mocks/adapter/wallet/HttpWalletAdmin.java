@@ -38,11 +38,11 @@ public final class HttpWalletAdmin implements WalletAdmin {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of("reason", reason))
                     .exchange((_, response) -> {
-                        var status = response.getStatusCode().value();
-                        if (status >= 500) {
+                        var status = response.getStatusCode();
+                        if (status.is5xxServerError()) {
                             throw new WalletUnavailableException("wallet-api returned " + status, null);
                         }
-                        if (status < 300) {
+                        if (status.is2xxSuccessful()) {
                             return Result.APPLIED;
                         }
                         var body = response.bodyTo(String.class);

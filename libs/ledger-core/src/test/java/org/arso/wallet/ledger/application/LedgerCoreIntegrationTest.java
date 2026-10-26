@@ -1,5 +1,8 @@
 package org.arso.wallet.ledger.application;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_CREATED;
 import static org.arso.wallet.ledger.FlakyDynamoDb.Fault.CONFLICT_BEFORE_COMMIT;
 import static org.arso.wallet.ledger.FlakyDynamoDb.Fault.TIMEOUT_AFTER_COMMIT;
 import static org.arso.wallet.ledger.domain.PaymentStatus.COMPLETED;
@@ -151,16 +154,16 @@ class LedgerCoreIntegrationTest {
 
     @Test
     void storedResponseIsWrittenOnceAndExpiredOneIsAbsent() {
-        var first = new StoredResponse("h1", 422, "{}");
+        var first = new StoredResponse("h1", HTTP_BAD_REQUEST, "{}");
         var now = now();
 
         assertThat(store.storeResponse("k1", first, now)).isTrue();
-        assertThat(store.storeResponse("k1", new StoredResponse("h2", 409, "{}"), now)).isFalse();
+        assertThat(store.storeResponse("k1", new StoredResponse("h2", HTTP_CONFLICT, "{}"), now)).isFalse();
         assertThat(store.findResponse("k1", now)).contains(first);
 
         var afterTtl = now.plus(Duration.ofHours(25));
         assertThat(store.findResponse("k1", afterTtl)).isEmpty();
-        assertThat(store.storeResponse("k1", new StoredResponse("h3", 201, "{}"), afterTtl)).isTrue();
+        assertThat(store.storeResponse("k1", new StoredResponse("h3", HTTP_CREATED, "{}"), afterTtl)).isTrue();
     }
 
     @Test

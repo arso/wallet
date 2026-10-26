@@ -31,6 +31,8 @@ import org.arso.wallet.testing.KafkaLocal;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -68,7 +70,7 @@ class MocksTest {
         assertThat(first).contains("\"beneficiary_id\":\"b-1\"", "\"account_masked\":\"****", "\"country\":\"DE\"");
         assertThat(client(Duration.ofSeconds(5)).get().uri("/beneficiaries/b-1").retrieve().body(String.class))
                 .isEqualTo(first);
-        assertThat(status(client(Duration.ofSeconds(5)).get().uri("/beneficiaries/missing-1"))).isEqualTo(404);
+        assertThat(status(client(Duration.ofSeconds(5)).get().uri("/beneficiaries/missing-1"))).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -196,8 +198,8 @@ class MocksTest {
         return RestClient.builder().baseUrl("http://localhost:" + port).requestFactory(factory).build();
     }
 
-    static int status(RestClient.RequestHeadersSpec<?> request) {
-        return request.exchange((_, response) -> response.getStatusCode().value());
+    static HttpStatusCode status(RestClient.RequestHeadersSpec<?> request) {
+        return request.exchange((_, response) -> response.getStatusCode());
     }
 
     static void await(BooleanSupplier condition) {

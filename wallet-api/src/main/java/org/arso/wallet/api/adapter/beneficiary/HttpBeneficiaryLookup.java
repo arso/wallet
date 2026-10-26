@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.arso.wallet.api.port.BeneficiaryLookup;
 import org.arso.wallet.api.port.BeneficiaryUnavailableException;
 import org.arso.wallet.ledger.domain.Counterparty;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -32,7 +33,7 @@ public final class HttpBeneficiaryLookup implements BeneficiaryLookup {
     public Optional<Counterparty> find(String beneficiaryId) {
         try {
             var body = client.get().uri("/beneficiaries/{id}", beneficiaryId).exchange((request, response) -> {
-                if (response.getStatusCode().value() == 404) {
+                if (response.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
                     return null;
                 }
                 if (!response.getStatusCode().is2xxSuccessful()) {

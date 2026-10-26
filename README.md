@@ -11,6 +11,7 @@ Plan: [docs/implementation-plan.md](docs/implementation-plan.md).
 - `wallet-api` - REST API
 - `bridge` - DynamoDB stream to Kafka (`ledger-events`, `withdraw-requests`)
 - `completion-service` - saga coordinator: records verification results, rejects or moves to `EXECUTING` and publishes `transfer-requests`
+- `transfer-executor` - calls TransferService for `EXECUTING` payments: completes, rejects or marks `NEEDS_REVIEW`; retries and circuit breaker ([details](transfer-executor/README.md))
 - `mocks` - beneficiary, TransferService, verifiers, AML ([rules](mocks/README.md))
 
 ## Build and test

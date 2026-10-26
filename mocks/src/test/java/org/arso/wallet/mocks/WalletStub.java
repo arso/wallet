@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.springframework.http.HttpStatus;
 
 final class WalletStub {
 
@@ -39,7 +40,7 @@ final class WalletStub {
                 var body = held ? "{\"error\":\"account_on_hold\",\"message\":\"account on hold\"}" : "{}";
                 var bytes = body.getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "application/json");
-                exchange.sendResponseHeaders(held ? 409 : 200, bytes.length);
+                exchange.sendResponseHeaders((held ? HttpStatus.CONFLICT : HttpStatus.OK).value(), bytes.length);
                 try (var out = exchange.getResponseBody()) {
                     out.write(bytes);
                 }

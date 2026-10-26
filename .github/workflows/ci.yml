@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [wallet-api, mocks, completion-service]
+        service: [wallet-api, mocks, completion-service, transfer-executor]
     steps:
       - uses: actions/checkout@v5
 
