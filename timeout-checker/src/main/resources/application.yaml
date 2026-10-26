@@ -1,0 +1,37 @@
+server:
+  port: 8086
+spring:
+  application:
+    name: timeout-checker
+  threads:
+    virtual:
+      enabled: true
+management:
+  server:
+    port: 8087
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+checker:
+  dynamodb:
+    table-name: wallet-local
+    endpoint: http://localhost:8000
+    region: us-east-1
+    max-connections: 200
+  lock:
+    max-attempts: 3
+    max-backoff: 50ms
+  kafka:
+    bootstrap-servers: localhost:9092
+    group-id: timeout-checker
+  workers:
+    max-in-flight: 256
+    unknown-max-attempts: 10
+    unknown-max-elapsed: 5m
+  verification-timeout: 1h
+  executing-stuck-after: 15m

@@ -12,6 +12,7 @@ Plan: [docs/implementation-plan.md](docs/implementation-plan.md).
 - `bridge` - DynamoDB stream to Kafka (`ledger-events`, `withdraw-requests`)
 - `completion-service` - saga coordinator: records verification results, rejects or moves to `EXECUTING` and publishes `transfer-requests`
 - `transfer-executor` - calls TransferService for `EXECUTING` payments: completes, rejects or marks `NEEDS_REVIEW`; retries and circuit breaker ([details](transfer-executor/README.md))
+- `timeout-checker` - rejects payments still `PENDING` at `requested_at` + 1h, re-drives stuck `EXECUTING` payments ([details](timeout-checker/README.md))
 - `mocks` - beneficiary, TransferService, verifiers, AML ([rules](mocks/README.md))
 
 ## Build and test
