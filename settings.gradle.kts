@@ -8,5 +8,6 @@ include(
     "bridge",
     "mocks",
     "completion-service",
-    "transfer-executor"
+    "transfer-executor",
+    "timeout-checker"
 )
