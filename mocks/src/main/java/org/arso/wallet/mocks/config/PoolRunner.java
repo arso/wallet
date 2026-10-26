@@ -1,6 +1,5 @@
 package org.arso.wallet.mocks.config;
 
-import java.time.Duration;
 import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.worker.WorkerPool;
@@ -22,7 +21,7 @@ final class PoolRunner implements SmartLifecycle {
     };
 
     private final WorkerPool pool;
-    private Thread thread;
+    private boolean running;
 
     PoolRunner(WorkerPool pool) {
         this.pool = pool;
@@ -30,21 +29,18 @@ final class PoolRunner implements SmartLifecycle {
 
     @Override
     public void start() {
-        thread = Thread.ofPlatform().name("poll-" + pool.hashCode()).start(pool);
+        pool.start();
+        running = true;
     }
 
     @Override
     public void stop() {
         pool.stop();
-        try {
-            thread.join(Duration.ofSeconds(30));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        running = false;
     }
 
     @Override
     public boolean isRunning() {
-        return thread != null && thread.isAlive();
+        return running;
     }
 }

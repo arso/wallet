@@ -11,26 +11,41 @@ import org.arso.wallet.ledger.application.Transactions;
 import org.arso.wallet.ledger.application.Transactions.Plan;
 import org.arso.wallet.ledger.domain.Account;
 import org.arso.wallet.ledger.domain.AccountId;
+import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.ledger.domain.Counterparty;
 import org.arso.wallet.ledger.domain.Currency;
 import org.arso.wallet.ledger.domain.LedgerEntry;
 import org.arso.wallet.ledger.domain.Money;
 import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.PaymentId;
+import org.arso.wallet.ledger.domain.PaymentStatus;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
 import org.arso.wallet.ledger.port.TxItem.PutPayment;
+import org.arso.wallet.ledger.port.TxItem.UpdatePayment;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 public final class TestLedger {
 
     public static final Counterparty PARTY = new Counterparty("b-1", "Jane Doe", "****9876", "hmac:77aa", "DE");
 
-    public final DynamoDbClient client = DynamoDbLocal.client();
-    public final String table = DynamoDbLocal.newTable(client);
-    public final DynamoLedgerStore store = new DynamoLedgerStore(client, table, Duration.ofHours(24));
-    public final Transactions transactions = new Transactions(store, new Transactions.RetryPolicy(5, Duration.ofMillis(20)));
-    public final DynamoAccountHolds holds = new DynamoAccountHolds(client, table, Clock.systemUTC());
+    public final DynamoDbClient client;
+    public final String table;
+    public final DynamoLedgerStore store;
+    public final Transactions transactions;
+    public final DynamoAccountHolds holds;
+
+    public TestLedger() {
+        this(DynamoDbLocal.newTable(DynamoDbLocal.client()));
+    }
+
+    public TestLedger(String table) {
+        this.client = DynamoDbLocal.client();
+        this.table = table;
+        this.store = new DynamoLedgerStore(client, table, Duration.ofHours(24));
+        this.transactions = new Transactions(store, new Transactions.RetryPolicy(10, Duration.ofMillis(20)));
+        this.holds = new DynamoAccountHolds(client, table, Clock.systemUTC());
+    }
 
     public AccountId open() {
         var id = AccountId.random();
@@ -51,14 +66,39 @@ public final class TestLedger {
     }
 
     public Payment withdraw(AccountId id, long amount) {
+        return withdraw(id, amount, List.of("aml"));
+    }
+
+    public Payment withdraw(AccountId id, long amount, List<String> steps) {
         return transactions.onAccount(id, a -> {
             var paymentId = PaymentId.random();
             var change = a.withdraw(usd(amount), paymentId, PARTY, now());
-            var payment = Payment.create(paymentId, id, usd(amount), PARTY.id(), List.of("aml"), now());
+            var payment = Payment.create(paymentId, id, usd(amount), PARTY.id(), steps, now());
             return new Plan<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new PutPayment(payment)),
                     payment);
         });
+    }
+
+    public void block(AccountId id) {
+        transactions.onAccount(id, a -> {
+            var change = a.block("aml", Actor.AML, now());
+            return new Plan<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
+        });
+    }
+
+    public void cancel(Payment payment) {
+        transactions.onAccount(payment.accountId(), a -> {
+            var change = a.cancelWithdraw(payment.amount(), payment.id(), now());
+            return new Plan<>(
+                    List.of(new PutAccount(change.account()), new PutEntry(change.entry()),
+                            new UpdatePayment(payment.cancel(now()), PaymentStatus.PENDING)),
+                    change.entry());
+        });
+    }
+
+    public Payment payment(PaymentId id) {
+        return store.findPayment(id).orElseThrow();
     }
 
     public Account account(AccountId id) {
