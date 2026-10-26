@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class IdempotencyTest extends ApiTest {
 
@@ -35,8 +36,8 @@ class IdempotencyTest extends ApiTest {
         var key = UUID.randomUUID().toString();
         withdraw(id, key, 10);
 
-        assertError(withdraw(id, key, 11), 409, "idempotency_mismatch");
-        assertError(withdraw(other, key, 10), 409, "idempotency_mismatch");
+        assertError(withdraw(id, key, 11), HttpStatus.CONFLICT, "idempotency_mismatch");
+        assertError(withdraw(other, key, 10), HttpStatus.CONFLICT, "idempotency_mismatch");
         assertThat(balance(id)).isEqualTo(90);
         assertThat(balance(other)).isEqualTo(100);
     }
@@ -49,7 +50,7 @@ class IdempotencyTest extends ApiTest {
         var responses = concurrently(10, () -> deposit(id, key, 25, "tx-" + key));
 
         assertThat(responses).allSatisfy(r -> assertThat(r).isEqualTo(responses.getFirst()));
-        assertThat(responses.getFirst().status()).isEqualTo(201);
+        assertThat(responses.getFirst().status()).isEqualTo(HttpStatus.CREATED);
         assertThat(balance(id)).isEqualTo(25);
     }
 
@@ -61,7 +62,7 @@ class IdempotencyTest extends ApiTest {
         var responses = concurrently(10, () -> withdraw(id, key, 100));
 
         assertThat(responses).allSatisfy(r -> {
-            assertThat(r.status()).isEqualTo(202);
+            assertThat(r.status()).isEqualTo(HttpStatus.ACCEPTED);
             assertThat(r).isEqualTo(responses.getFirst());
         });
         assertThat(balance(id)).isZero();
@@ -91,18 +92,18 @@ class IdempotencyTest extends ApiTest {
     void finalErrorsAreStoredButUnavailableIsNot() {
         var id = account(10);
         var tooMuch = UUID.randomUUID().toString();
-        assertError(withdraw(id, tooMuch, 50), 422, "insufficient_funds");
+        assertError(withdraw(id, tooMuch, 50), HttpStatus.UNPROCESSABLE_CONTENT, "insufficient_funds");
         deposit(id, UUID.randomUUID().toString(), 100, "tx-more-" + id);
-        assertError(withdraw(id, tooMuch, 50), 422, "insufficient_funds");
+        assertError(withdraw(id, tooMuch, 50), HttpStatus.UNPROCESSABLE_CONTENT, "insufficient_funds");
 
         var key = UUID.randomUUID().toString();
         BeneficiaryStub.down = true;
         try {
-            assertError(withdraw(id, key, 5), 503, "beneficiary_unavailable");
+            assertError(withdraw(id, key, 5), HttpStatus.SERVICE_UNAVAILABLE, "beneficiary_unavailable");
         } finally {
             BeneficiaryStub.down = false;
         }
-        assertThat(withdraw(id, key, 5).status()).isEqualTo(202);
+        assertThat(withdraw(id, key, 5).status()).isEqualTo(HttpStatus.ACCEPTED);
     }
 
     @Test
@@ -114,11 +115,11 @@ class IdempotencyTest extends ApiTest {
         var first = deposit(id, UUID.randomUUID().toString(), 70, txId);
         var retried = deposit(id, UUID.randomUUID().toString(), 70, txId);
         assertThat(retried.number("seq")).isEqualTo(first.number("seq"));
-        assertError(deposit(other, UUID.randomUUID().toString(), 70, txId), 409, "duplicate_deposit");
+        assertError(deposit(other, UUID.randomUUID().toString(), 70, txId), HttpStatus.CONFLICT, "duplicate_deposit");
 
         var raceTx = "tx-" + UUID.randomUUID();
         var raced = concurrently(5, () -> deposit(id, UUID.randomUUID().toString(), 10, raceTx));
-        assertThat(raced).allSatisfy(r -> assertThat(r.status()).isEqualTo(201));
+        assertThat(raced).allSatisfy(r -> assertThat(r.status()).isEqualTo(HttpStatus.CREATED));
 
         assertThat(balance(id)).isEqualTo(80);
         assertThat(balance(other)).isZero();

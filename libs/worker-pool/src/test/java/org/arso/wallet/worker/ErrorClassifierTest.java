@@ -1,5 +1,7 @@
 package org.arso.wallet.worker;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 import static org.arso.wallet.worker.ErrorClassifier.Kind.PERMANENT;
 import static org.arso.wallet.worker.ErrorClassifier.Kind.TRANSIENT;
 import static org.arso.wallet.worker.ErrorClassifier.Kind.UNKNOWN;
@@ -21,9 +23,9 @@ class ErrorClassifierTest {
 
     @Test
     void infrastructureErrorsAreTransient() {
-        assertThat(classifier.classify(dynamo(400, "ExpiredTokenException"))).isEqualTo(TRANSIENT);
-        assertThat(classifier.classify(dynamo(400, "ResourceNotFoundException"))).isEqualTo(TRANSIENT);
-        assertThat(classifier.classify(dynamo(500, "InternalServerError"))).isEqualTo(TRANSIENT);
+        assertThat(classifier.classify(dynamo(HTTP_BAD_REQUEST, "ExpiredTokenException"))).isEqualTo(TRANSIENT);
+        assertThat(classifier.classify(dynamo(HTTP_BAD_REQUEST, "ResourceNotFoundException"))).isEqualTo(TRANSIENT);
+        assertThat(classifier.classify(dynamo(HTTP_INTERNAL_ERROR, "InternalServerError"))).isEqualTo(TRANSIENT);
         assertThat(classifier.classify(new RuntimeException(SdkClientException.create("timeout")))).isEqualTo(TRANSIENT);
         assertThat(classifier.classify(new ExecutionException(new TimeoutException("kafka")))).isEqualTo(TRANSIENT);
         assertThat(classifier.classify(new LockRetriesExhaustedException(3))).isEqualTo(TRANSIENT);
@@ -35,13 +37,13 @@ class ErrorClassifierTest {
 
         assertThat(classifier.classify(parse)).isEqualTo(PERMANENT);
         assertThat(classifier.classify(new PermanentRecordException("schema_version 7"))).isEqualTo(PERMANENT);
-        assertThat(classifier.classify(dynamo(400, "ValidationException"))).isEqualTo(PERMANENT);
+        assertThat(classifier.classify(dynamo(HTTP_BAD_REQUEST, "ValidationException"))).isEqualTo(PERMANENT);
     }
 
     @Test
     void bugsAreUnknown() {
         assertThat(classifier.classify(new NullPointerException())).isEqualTo(UNKNOWN);
-        assertThat(classifier.classify(dynamo(400, "ConditionalCheckFailedException"))).isEqualTo(UNKNOWN);
+        assertThat(classifier.classify(dynamo(HTTP_BAD_REQUEST, "ConditionalCheckFailedException"))).isEqualTo(UNKNOWN);
     }
 
     @Test

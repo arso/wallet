@@ -7,6 +7,7 @@ import org.arso.wallet.testing.DynamoDbLocal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -18,7 +19,7 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootTest(classes = WalletApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 abstract class ApiTest {
 
-    record Resp(int status, JsonNode body) {
+    record Resp(HttpStatus status, JsonNode body) {
 
         String text(String field) {
             return body.path(field).asString();
@@ -66,7 +67,7 @@ abstract class ApiTest {
 
     String createAccount() {
         var created = post("/accounts", "{}");
-        assertThat(created.status()).isEqualTo(201);
+        assertThat(created.status()).isEqualTo(HttpStatus.CREATED);
         return created.text("account_id");
     }
 
@@ -74,7 +75,7 @@ abstract class ApiTest {
         var id = createAccount();
         if (balance > 0) {
             assertThat(deposit(id, UUID.randomUUID().toString(), balance, "tx-" + UUID.randomUUID()).status())
-                    .isEqualTo(201);
+                    .isEqualTo(HttpStatus.CREATED);
         }
         return id;
     }
@@ -104,6 +105,6 @@ abstract class ApiTest {
     }
 
     private Resp read(HttpStatusCode status, String body) {
-        return new Resp(status.value(), body == null || body.isEmpty() ? mapper.createObjectNode() : mapper.readTree(body));
+        return new Resp(HttpStatus.valueOf(status.value()), body == null || body.isEmpty() ? mapper.createObjectNode() : mapper.readTree(body));
     }
 }

@@ -1,5 +1,8 @@
 package org.arso.wallet.api.application;
 
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+
 import java.time.Clock;
 import java.util.function.Supplier;
 import org.arso.wallet.ledger.port.ConditionFailedException;
@@ -36,7 +39,7 @@ public final class Idempotency {
                 return replay(idem, again.get());
             }
             var error = errors.of(e).orElseThrow(() -> e);
-            if (error.status() < 500) {
+            if (error.status() < HTTP_INTERNAL_ERROR) {
                 store.storeResponse(idem.key(), idem.stored(error), clock.instant());
             }
             return error;
@@ -46,6 +49,6 @@ public final class Idempotency {
     private ApiResponse replay(Idem idem, StoredResponse stored) {
         return stored.requestHash().equals(idem.hash())
                 ? new ApiResponse(stored.status(), stored.body())
-                : errors.response(409, "idempotency_mismatch", "Idempotency-Key reused with a different request");
+                : errors.response(HTTP_CONFLICT, "idempotency_mismatch", "Idempotency-Key reused with a different request");
     }
 }

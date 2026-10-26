@@ -1,5 +1,6 @@
 package org.arso.wallet.worker;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
@@ -102,7 +103,7 @@ class FailurePolicyTest extends PoolTest {
         var attempts = new AtomicInteger();
         start(settings(Mode.UNORDERED, HoldTarget.ACCOUNT_ID).withUnknownBudget(2, Duration.ofMinutes(1)), r -> {
             if (attempts.incrementAndGet() <= 6) {
-                throw ErrorClassifierTest.dynamo(400, "ExpiredTokenException");
+                throw ErrorClassifierTest.dynamo(HTTP_BAD_REQUEST, "ExpiredTokenException");
             }
             return Outcome.DONE;
         });

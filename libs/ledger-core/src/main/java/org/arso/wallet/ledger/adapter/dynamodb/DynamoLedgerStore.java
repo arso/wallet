@@ -31,6 +31,7 @@ import org.arso.wallet.ledger.port.TxItem.PutPayment;
 import org.arso.wallet.ledger.port.TxItem.PutResponse;
 import org.arso.wallet.ledger.port.TxItem.UpdatePayment;
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.http.HttpStatusFamily;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionCheck;
@@ -174,7 +175,7 @@ public final class DynamoLedgerStore implements LedgerStore {
         } catch (TransactionInProgressException | RequestLimitExceededException | SdkClientException e) {
             throw new TransientStoreException(e);
         } catch (DynamoDbException e) {
-            if (e.isThrottlingException() || e.statusCode() >= 500) {
+            if (e.isThrottlingException() || HttpStatusFamily.of(e.statusCode()) == HttpStatusFamily.SERVER_ERROR) {
                 throw new TransientStoreException(e);
             }
             throw e;

@@ -5,6 +5,8 @@ archunit = "1.5.1"
 aws-lambda-core = "1.4.0"
 aws-lambda-events = "3.16.1"
 aws-lambda-events-transformer = "3.1.1"
+resilience4j = "2.4.0"
+wiremock = "3.13.2"
 
 [libraries]
 spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -29,6 +31,8 @@ assertj = { module = "org.assertj:assertj-core" }
 archunit = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 testcontainers = { module = "org.testcontainers:testcontainers" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
+resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

@@ -18,6 +18,8 @@ import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.PaymentId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
@@ -81,7 +83,7 @@ public final class WalletHandlers {
             throws Exception {
         var key = req.headers().firstHeader(IDEMPOTENCY_KEY);
         if (key == null || key.isBlank() || key.length() > 128) {
-            return send(req, errors.response(400, "invalid_request", "Idempotency-Key header is required"));
+            return send(req, errors.response(HttpStatus.BAD_REQUEST.value(), "invalid_request", "Idempotency-Key header is required"));
         }
         var body = req.body(byte[].class);
         var idem = new Idem(key, hash(req, body));
@@ -122,11 +124,11 @@ public final class WalletHandlers {
         if (known.isEmpty()) {
             LOG.error("{} {} failed", req.method(), req.path(), e);
         }
-        return send(req, known.orElseGet(() -> errors.response(500, "internal_error", "unexpected error")));
+        return send(req, known.orElseGet(() -> errors.response(HttpStatus.INTERNAL_SERVER_ERROR.value(), "internal_error", "unexpected error")));
     }
 
     private static ServerResponse send(ServerRequest req, ApiResponse response) {
-        if (response.status() >= 400) {
+        if (HttpStatusCode.valueOf(response.status()).isError()) {
             FAILED_REQUESTS.info("{} {} {} {}", req.method(), req.path(), response.status(), response.body());
         }
         return ServerResponse.status(response.status()).contentType(MediaType.APPLICATION_JSON).body(response.body());

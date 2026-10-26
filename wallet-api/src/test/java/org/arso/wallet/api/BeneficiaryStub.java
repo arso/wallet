@@ -6,6 +6,7 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import org.springframework.http.HttpStatus;
 
 /** In-process beneficiary service: any id starting with "b-" exists, "missing" does not, and it can be taken down. */
 final class BeneficiaryStub {
@@ -25,13 +26,13 @@ final class BeneficiaryStub {
             var server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             server.createContext("/beneficiaries/", exchange -> {
                 var id = exchange.getRequestURI().getPath().substring("/beneficiaries/".length());
-                var status = down ? 500 : id.startsWith("b-") ? 200 : 404;
-                var body = status != 200 ? "" : """
+                var status = down ? HttpStatus.INTERNAL_SERVER_ERROR : id.startsWith("b-") ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+                var body = status != HttpStatus.OK ? "" : """
                         {"beneficiary_id":"%s","name":"Jane Doe","account_masked":"****9876",\
                         "account_fingerprint":"hmac:abc","country":"DE"}""".formatted(id);
                 var bytes = body.getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().add("Content-Type", "application/json");
-                exchange.sendResponseHeaders(status, bytes.length == 0 ? -1 : bytes.length);
+                exchange.sendResponseHeaders(status.value(), bytes.length == 0 ? -1 : bytes.length);
                 try (var out = exchange.getResponseBody()) {
                     out.write(bytes);
                 }
