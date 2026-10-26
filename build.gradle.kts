@@ -1,22 +1,27 @@
 plugins {
-    java
-    id("org.springframework.boot") version "4.0.0"
-    id("io.spring.dependency-management") version "1.1.7"
+    alias(libs.plugins.spring.boot) apply false
 }
 
-group = "org.arso"
+subprojects {
+    apply(plugin = "java-library")
 
-version = "0.0.1-SNAPSHOT"
+    group = "org.arso"
+    version = "0.0.1-SNAPSHOT"
 
-java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
+    repositories { mavenCentral() }
 
-repositories { mavenCentral() }
+    extensions.configure<JavaPluginExtension> { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
 
-dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    configurations.matching { it.name in setOf("implementation", "testFixturesApi") }.configureEach {
+        project.dependencies.add(name, project.dependencies.platform(rootProject.libs.spring.boot.dependencies))
+        project.dependencies.add(name, project.dependencies.platform(rootProject.libs.awssdk.bom))
+    }
+
+    dependencies {
+        "testImplementation"(rootProject.libs.junit.jupiter)
+        "testImplementation"(rootProject.libs.assertj)
+        "testRuntimeOnly"(rootProject.libs.junit.launcher)
+    }
+
+    tasks.withType<Test> { useJUnitPlatform() }
 }
-
-tasks.withType<Test> { useJUnitPlatform() }
