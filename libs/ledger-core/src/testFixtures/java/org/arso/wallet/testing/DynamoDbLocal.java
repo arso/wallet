@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.streams.DynamoDbStreamsClient;
 
 public final class DynamoDbLocal {
 
@@ -27,6 +28,14 @@ public final class DynamoDbLocal {
 
     public static DynamoDbClient client() {
         return DynamoDbClient.builder()
+                .endpointOverride(endpoint())
+                .region(Region.US_EAST_1)
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("local", "local")))
+                .build();
+    }
+
+    public static DynamoDbStreamsClient streamsClient() {
+        return DynamoDbStreamsClient.builder()
                 .endpointOverride(endpoint())
                 .region(Region.US_EAST_1)
                 .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create("local", "local")))

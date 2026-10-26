@@ -16,6 +16,8 @@ import java.util.TreeSet;
 /** Hexagonal / onion rules from spec 4, shared by every module. */
 public final class HexagonalRules {
 
+    private static final String EVENTS = "org.arso.wallet.events";
+
     private HexagonalRules() {}
 
     public static void check(String basePackage) {
@@ -32,14 +34,18 @@ public final class HexagonalRules {
 
         classes().that().resideInAPackage(basePackage + ".port..")
                 .should().onlyDependOnClassesThat()
-                .resideInAnyPackage("java..", "org.arso.wallet..domain..", "org.arso.wallet..port..")
+                .resideInAnyPackage("java..", "org.arso.wallet..domain..", "org.arso.wallet..port..", EVENTS)
                 .allowEmptyShould(true)
                 .check(classes);
 
         classes().that().resideInAPackage(basePackage + ".application..")
                 .should().onlyDependOnClassesThat()
                 .resideInAnyPackage(
-                        "java..", "org.arso.wallet..domain..", "org.arso.wallet..port..", "org.arso.wallet..application..")
+                        "java..",
+                        "org.arso.wallet..domain..",
+                        "org.arso.wallet..port..",
+                        "org.arso.wallet..application..",
+                        EVENTS)
                 .allowEmptyShould(true)
                 .check(classes);
 
