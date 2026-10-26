@@ -37,7 +37,8 @@ Status: agreed, not started.
 | 18 | Worker pool dispatch modes (phase 5): completion keeps per-payment queues (KEYED); the transfer executor runs each record on its own virtual thread, capped by a semaphore (UNORDERED); the timeout checker processes each record at its due time (DELAYED), through the same permit pool, and gets the same failure policy. Each partition keeps a set of pause reasons. | 8.4, 8.5, 15.4 (Java 25 note) | With per-payment queues, one transfer retry (up to ~2.5 min) delays every payment queued behind it. The executor gains nothing from ordering: one message per payment, duplicates are safe through the TransferService idempotency key, the `EXECUTING` check and the `complete` condition. |
 | 19 | Drop the `payments_executing`, oldest-age-in-`EXECUTING` and `payments_needs_review` gauges. Alert instead on `stuck_executing_redriven_total`, `accounts_held_total` and `payments_finalized_total{outcome="needs_review"}`. | 15.4 | A count by status needs a table Scan (the table grows ~350 GB/day) or a GSI. The timeout checker already looks at every payment, so a payment stuck in `EXECUTING` always shows up as a re-drive. |
 | 20 | Verification `details` stored on `PAYMENT#` cut to 100 characters; the full text stays in the `verification-results` message. | 5.6, 8.3 | Free text with no bound. Above ~110 characters per step `PAYMENT#` goes over 1 KB and every later write to it costs double; also removes the 400 KB item limit risk. Cut, not rejected, so a long text never puts an account on hold. |
-| 21 | No DLQ topics. A record that fails permanently, or uses up its unknown-error budget, puts its account `ON_HOLD` (new `ACCOUNT#` status) with a ledger entry `account_held` that keeps `hold_ref` (topic / partition / offset, or `ledger/<account_id>/<seq>` for the bridge); the record is then marked done. Only the internal release endpoint clears it, to a status the operator chooses. Same for the bridge. | 6.2, 7, 8.1, 8.4, 10 | Kafka already keeps the record; a DLQ is a second copy plus partition and resolver setup. A hold freezes the money where it is, makes the problem visible per account, and never blocks a partition. |
+| 21 | No DLQ topics. A record that fails permanently, or uses up its unknown-error budget, puts its account `ON_HOLD` (new `ACCOUNT#` status) with a ledger entry `account_held` that keeps `hold_ref` (topic / partition / offset); the record is then marked done. Only the internal release endpoint clears it, to a status the operator chooses. Not for the bridge: it fails the batch and stalls instead (spec change 22). | 6.2, 7, 8.1, 8.4, 10 | Kafka already keeps the record; a DLQ is a second copy plus partition and resolver setup. A hold freezes the money where it is, makes the problem visible per account, and never blocks a partition. |
+| 22 | The bridge never holds an account and never skips a record: any error fails the stream batch, which is sent again until it goes through. No republish command. | 7, 8.1 | Permanent errors are near impossible in the bridge (item <= 400 KB < 1 MB Kafka limit; same mapper that wrote the item), so a hold path, its loop guard and a republish tool cost more than they save. A deploy bug stalls one shard; `IteratorAge` alerts long before the 24h retention. |
 
 Implementation notes (no spec change, only made explicit):
 
@@ -121,7 +122,7 @@ Status rules:
 |---|---|---|---|
 | `ACTIVE` | block | `BLOCKED` | AML (internal API) |
 | `BLOCKED` | unblock | `ACTIVE` | AML (internal API) |
-| `ACTIVE`, `BLOCKED` | hold | `ON_HOLD` (sets `pre_hold_status` to the old status and `hold_refs` to the first `hold_ref`) | any consumer or the bridge, on a record that cannot be processed (section 5.6) |
+| `ACTIVE`, `BLOCKED` | hold | `ON_HOLD` (sets `pre_hold_status` to the old status and `hold_refs` to the first `hold_ref`) | any consumer, on a record that cannot be processed (section 5.6) |
 | `ON_HOLD` | hold again | `ON_HOLD` (version bump, new `account_held` entry with the new `hold_ref`, added to `hold_refs`; `pre_hold_status` unchanged; no-op if `hold_ref` is already in `hold_refs`) | same |
 | `ON_HOLD` | release (`to` required) | `ACTIVE` or `BLOCKED` | operator, `POST /internal/accounts/{id}/release` |
 | `ON_HOLD` | block / unblock | refused, 409 `account_on_hold` | AML |
@@ -155,7 +156,7 @@ Dropped (spec change 6). Add back when there is real static account data.
 | `payer` | M | no | `deposit` only, see counterparty |
 | `beneficiary` | M | no | `withdraw` only, see counterparty |
 | `verifier` | S | no | `reject_withdraw` with `VERIFICATION_REJECTED` |
-| `hold_ref` | S | no | `account_held` only: failed record. Consumers: `<topic>/<partition>/<offset>`. Bridge: `ledger/<account_id>/<seq>` of the skipped entry. |
+| `hold_ref` | S | no | `account_held` only: failed record, `<topic>/<partition>/<offset>`. |
 | `prior_status` | S | no | `account_held` only: status before the hold (`ACTIVE`, `BLOCKED`, or `ON_HOLD` for a repeat hold) |
 | `released_to` | S | no | `account_released` only: `ACTIVE` or `BLOCKED` |
 
@@ -572,11 +573,13 @@ Spec change 13. Goal: no message that moves a payment forward is ever lost or si
 
 **Bridge:**
 
-- Send every record of a stream batch async, then `flush()`, check all results, and only then advance the shard iterator (Lambda: return success). No per-record `send().get()`, which would cap throughput per shard.
-- Transient error (Kafka timeout, broker unavailable): do not advance, resend the whole batch (duplicates are safe: idempotent producer, idempotent consumers).
-- Permanent error for one record (cannot map, `RecordTooLargeException`, serialization): put the record's account `ON_HOLD` with `hold_ref = ledger/<account_id>/<seq>` (from the stream record; the stream sequence goes to the log only, it is gone after 24h), skip that record, continue the batch. If the hold write fails with an infrastructure error, it is transient: resend the batch.
-- Exception: a permanent error on an `account_held` or `account_released` record never writes a hold (a hold would write a new `account_held` entry and loop). Log, count `unattributable_records_total`, skip.
-- Lambda (later): event source mapping `FilterCriteria` on `eventName = INSERT` and `dynamodb.Keys.SK.S` prefix `LEDGER#` (~80% fewer invocations; the in-class filter stays for the local runner and as a second check). `ReportBatchItemFailures`; `MaximumRecordAgeInSeconds = -1` and `MaximumRetryAttempts = -1`, so no record is ever dropped by age; no `BisectBatchOnFunctionError`. Each record runs inside a catch-all that uses the `worker-pool` classifier: content errors go to the hold path, so the function never fails on record content; infrastructure errors (Kafka, DynamoDB) still fail the batch, so an outage never holds accounts. Alert on `IteratorAge` well before the 24h Streams retention.
+Fail and alert (spec change 22): the bridge never skips a record and never holds an account.
+
+- Send every record of a stream batch async, then `flush()`, check all results, and only then return success (the shard checkpoint moves). No per-record `send().get()`, which would cap throughput per shard.
+- Any error (Kafka not acked, a ledger item that cannot be mapped) fails the whole batch. The batch is sent again until it goes through (duplicates are safe: idempotent producer, idempotent consumers). A mapping bug stalls its shard until a fixed version is deployed.
+- Permanent errors are near impossible here: a DynamoDB item is at most 400 KB, below the 1 MB Kafka default (`max.request.size` and broker `message.max.bytes` stay >= 1 MB), and the mapper is the same code that wrote the item. What is left is a deploy bug: roll back or fix within the 24h Streams retention.
+- Lambda (later): handler `BridgeLambdaHandler`. Event source mapping `FilterCriteria` on `eventName = INSERT` and `dynamodb.Keys.SK.S` prefix `LEDGER#` (~80% fewer invocations; the in-class filter stays as a second check). `MaximumRecordAgeInSeconds = -1` and `MaximumRetryAttempts = -1`, so no record is ever dropped; no `BisectBatchOnFunctionError`, no on-failure destination. Alert on `IteratorAge` (e.g. > 5 min) and on function errors, well before the 24h Streams retention.
+- Local: `StreamRunner` polls the DynamoDB Local stream and calls the same `Bridge`; it moves the shard iterator only after a batch is published. Not for production.
 
 **Consumers** (`worker-pool`: completion, transfer executor and timeout checker; every record ends in one of four ways):
 
@@ -602,7 +605,7 @@ Spec change 13. Goal: no message that moves a payment forward is ever lost or si
 | completion | `PENDING`, account `ON_HOLD`; `EXECUTING` only if an unknown error came after mark executing committed | `PENDING`: timeout checker rejects and refunds at 1h (system refunds work on held accounts). `EXECUTING`: timeout checker re-drives it, as for the executor. |
 | transfer executor | `EXECUTING`, account `ON_HOLD` | timeout checker re-drives it (safety net below); never refunded automatically |
 | timeout checker | `PENDING` or `EXECUTING`, account `ON_HOLD` | operator: fix, release the account, then replay from `hold_ref` (replay command, phase 5) |
-| bridge | `PENDING`, account `ON_HOLD`; for a `withdraw` entry no `withdraw-requests` record exists, so no verifier and no timeout checker sees the payment | operator: fix, release the account, then republish the ledger entry from `hold_ref` (republish command, phase 4) |
+| bridge | nothing is skipped; the shard stalls, so later entries of every account on that shard wait | fix or roll back within 24h; the stalled batch is then published and the shard catches up |
 
 - Recovery order is always: fix the bug, release the account, then replay / republish. While the account is `ON_HOLD`, mark executing rejects with `ACCOUNT_BLOCKED`, so a replay before release only ends in a refund.
 - A replayed or republished withdraw keeps its original `requested_at`. If recovery comes more than the timeout (1h) after the withdraw, the timeout checker rejects it at once with `VERIFICATION_TIMEOUT` and refunds it. This is intended: a late recovery ends `REJECTED` with the money back, and the customer withdraws again. Inside the timeout, the payment finishes normally.
@@ -640,7 +643,7 @@ wallet/
   completion-service/    saga coordinator                           -> image
   transfer-executor/     calls TransferService                      -> image
   timeout-checker/       worker pool, DELAYED mode                           -> image
-  bridge/                Streams to Kafka (plain class, local runner, Lambda wrapper later)
+  bridge/                Streams to Kafka (Lambda handler; local runner on DynamoDB Local)
   mocks/                 verifiers, AML, TransferService, Beneficiary -> image(s)
   libs/
     ledger-core/         shared domain + DynamoDB money transactions
@@ -713,11 +716,11 @@ Each phase ends with passing tests.
 ### Phase 4 - `events` + `bridge`
 - `libs/events`: records for the 4 topic messages (section 5) + Jackson mapping. Round-trip JSON tests.
 - Bridge plain class: only `INSERT` of `LEDGER#` items. Publish to `ledger-events`; `withdraw` also to `withdraw-requests`.
-- Local runner polling the LocalStack stream. Lambda wrapper later.
+- Lambda handler (`DynamodbEvent`, Amazon `aws-lambda-java-events` + SDK v2 transformer). Packaging and the event source mapping later (section 8).
+- Local runner polling the DynamoDB Local stream (LocalStack is not used: the free image has no Java 25 Lambda runtime).
 - Acked idempotent producer with compression; send the whole stream batch async, flush, check all results, then advance the shard iterator (section 5.6).
-- Permanent error on one record (cannot map, too large): put its account `ON_HOLD` with `hold_ref = ledger/<account_id>/<seq>`, skip it, continue the batch. Transient errors resend the batch (section 5.6). Never hold on `account_held` or `account_released` records.
-- Republish command (small CLI in `bridge`): `republish --account <id> --seq <n>` reads the ledger entry and publishes it as the bridge would (both topics for `withdraw`). Used to recover a bridge hold.
-- Tests: publish fails, nothing is skipped, record published after recovery; one record in the middle of a batch fails → iterator does not move, whole batch resent. A record that cannot be mapped in the middle of a batch → its account `ON_HOLD`, the rest of the batch published, iterator advances. An `account_held` record that cannot be mapped → skipped, no new hold, no loop. Release, then republish of a skipped `withdraw` entry inside the timeout → payment verified and finished normally; after the timeout → rejected `VERIFICATION_TIMEOUT` and refunded. Two bad records of one account in one batch, then a transient failure and a resend → exactly two `account_held` entries. Round-trip tests include `account_held` and `account_released`.
+- Any error fails the whole batch; nothing is skipped, no account hold (section 5.6, spec change 22).
+- Tests: publish fails, nothing is skipped, record published after recovery; one record in the middle of a batch fails → iterator does not move, whole batch resent. A record that cannot be mapped → the shard stalls, nothing after it is published. Only `INSERT` of `LEDGER#` reaches Kafka. Round-trip tests include `account_held` and `account_released`.
 - Spec ref: 7, 8.1.
 
 ### Phase 5 - `worker-pool`

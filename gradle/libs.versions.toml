@@ -2,6 +2,9 @@
 spring-boot = "4.1.2"
 awssdk = "2.57.3"
 archunit = "1.5.1"
+aws-lambda-core = "1.4.0"
+aws-lambda-events = "3.16.1"
+aws-lambda-events-transformer = "3.1.1"
 
 [libraries]
 spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -12,11 +15,19 @@ micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus
 awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
 awssdk-dynamodb = { module = "software.amazon.awssdk:dynamodb" }
 awssdk-apache5 = { module = "software.amazon.awssdk:apache5-client" }
+aws-lambda-core = { module = "com.amazonaws:aws-lambda-java-core", version.ref = "aws-lambda-core" }
+aws-lambda-events = { module = "com.amazonaws:aws-lambda-java-events", version.ref = "aws-lambda-events" }
+aws-lambda-events-transformer = { module = "com.amazonaws:aws-lambda-java-events-sdk-transformer", version.ref = "aws-lambda-events-transformer" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind" }
+kafka-clients = { module = "org.apache.kafka:kafka-clients" }
+logback-classic = { module = "ch.qos.logback:logback-classic" }
+slf4j-jdk-platform-logging = { module = "org.slf4j:slf4j-jdk-platform-logging" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 assertj = { module = "org.assertj:assertj-core" }
 archunit = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 testcontainers = { module = "org.testcontainers:testcontainers" }
+testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
