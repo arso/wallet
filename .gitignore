@@ -1,0 +1,8 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+.codex
+
+# Ignore Gradle build output directory
+build
+.idea/
+kls_database.db
