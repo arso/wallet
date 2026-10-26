@@ -12,7 +12,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Supplier;
 import org.arso.wallet.ledger.application.Transactions.Plan;
-import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.Payment;
@@ -104,13 +103,6 @@ public final class PaymentTransitions {
                 default -> throw e;
             };
         }
-    }
-
-    // TODO(phase 5): the hold flow must read raw attributes, never through the domain mapper (plan 5.6).
-    public void hold(AccountId id, String reason, String holdRef, Actor actor) {
-        transactions.onAccount(id, account -> account.hold(reason, holdRef, actor, now())
-                .map(change -> new Plan<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), id))
-                .orElse(Plan.none(id)));
     }
 
     private Payment find(PaymentId id) {

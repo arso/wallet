@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.arso.wallet.ledger.FlakyDynamoDb;
+import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
 import org.arso.wallet.ledger.application.Transactions.Plan;
 import org.arso.wallet.ledger.application.Transactions.RetryPolicy;
@@ -39,6 +40,7 @@ import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.domain.RejectReason;
 import org.arso.wallet.ledger.domain.Verification;
+import org.arso.wallet.ledger.port.AccountHolds.Result;
 import org.arso.wallet.ledger.port.StoredResponse;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
@@ -54,7 +56,9 @@ class LedgerCoreIntegrationTest {
 
     final DynamoDbClient raw = DynamoDbLocal.client();
     final FlakyDynamoDb client = new FlakyDynamoDb(raw);
-    final DynamoLedgerStore store = new DynamoLedgerStore(client, DynamoDbLocal.newTable(raw), Duration.ofHours(24));
+    final String table = DynamoDbLocal.newTable(raw);
+    final DynamoLedgerStore store = new DynamoLedgerStore(client, table, Duration.ofHours(24));
+    final DynamoAccountHolds holds = new DynamoAccountHolds(raw, table, CLOCK);
     final Transactions transactions = new Transactions(store, new RetryPolicy(5, Duration.ofMillis(20)));
     final PaymentTransitions payments = new PaymentTransitions(store, transactions, CLOCK);
 
@@ -62,7 +66,7 @@ class LedgerCoreIntegrationTest {
     void ledgerEntriesRoundTripNewestFirst() {
         var id = account(100);
         var payment = pendingWithdraw(id, 30, List.of("aml"));
-        payments.hold(id, "NullPointerException", "topic/1/5", Actor.BRIDGE);
+        holds.holdAccount(id.value(), "NullPointerException", "topic/1/5", Actor.COMPLETION_SERVICE);
         transactions.onAccount(id, a -> change(a.release("fixed", AccountStatus.ACTIVE, false, Actor.INTERNAL, now())));
 
         var page = store.entries(id, null, 3);
@@ -86,9 +90,9 @@ class LedgerCoreIntegrationTest {
         var id = account(10);
         transactions.onAccount(id, a -> change(a.block("aml", Actor.AML, now())));
 
-        payments.hold(id, "e", "t/0/1", Actor.BRIDGE);
-        payments.hold(id, "e", "t/0/2", Actor.BRIDGE);
-        payments.hold(id, "e", "t/0/1", Actor.BRIDGE);
+        assertThat(holds.holdAccount(id.value(), "e", "t/0/1", Actor.COMPLETION_SERVICE)).isEqualTo(Result.HELD);
+        assertThat(holds.holdAccount(id.value(), "e", "t/0/2", Actor.COMPLETION_SERVICE)).isEqualTo(Result.HELD);
+        assertThat(holds.holdAccount(id.value(), "e", "t/0/1", Actor.COMPLETION_SERVICE)).isEqualTo(Result.ALREADY_HELD);
 
         var held = store.findAccount(id).orElseThrow();
         assertThat(held.status()).isEqualTo(AccountStatus.ON_HOLD);
@@ -100,6 +104,28 @@ class LedgerCoreIntegrationTest {
         var released = store.findAccount(id).orElseThrow();
         assertThat(released.preHoldStatus()).isNull();
         assertThat(released.holdRefs()).isEmpty();
+    }
+
+    @Test
+    void holdFindsTheAccountOfAPaymentOrIsUnattributable() {
+        var id = account(100);
+        var payment = pendingWithdraw(id, 30, List.of("aml"));
+
+        assertThat(holds.holdPaymentAccount(payment.id().value(), "e", "t/1/9", Actor.TIMEOUT_CHECKER)).isEqualTo(Result.HELD);
+        assertThat(holds.holdPaymentAccount(PaymentId.random().value(), "e", "t/1/10", Actor.TIMEOUT_CHECKER))
+                .isEqualTo(Result.UNATTRIBUTABLE);
+        assertThat(holds.holdPaymentAccount("not-a-ulid", "e", "t/1/11", Actor.TIMEOUT_CHECKER)).isEqualTo(Result.UNATTRIBUTABLE);
+        assertThat(holds.holdAccount(AccountId.random().value(), "e", "t/1/12", Actor.TIMEOUT_CHECKER))
+                .isEqualTo(Result.UNATTRIBUTABLE);
+
+        var held = store.findAccount(id).orElseThrow();
+        assertThat(held.status()).isEqualTo(AccountStatus.ON_HOLD);
+        assertThat(held.preHoldStatus()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(store.findEntry(id, held.version())).get().isInstanceOfSatisfying(AccountHeld.class, h -> {
+            assertThat(h.holdRef()).isEqualTo("t/1/9");
+            assertThat(h.meta().balanceAfter()).isEqualTo(70);
+        });
+        assertLedgerMatches(held);
     }
 
     @Test

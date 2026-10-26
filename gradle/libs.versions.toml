@@ -11,6 +11,7 @@ spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-depe
 spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+micrometer-core = { module = "io.micrometer:micrometer-core" }
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
 awssdk-dynamodb = { module = "software.amazon.awssdk:dynamodb" }

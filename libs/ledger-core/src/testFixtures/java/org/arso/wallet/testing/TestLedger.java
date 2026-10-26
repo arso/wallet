@@ -1,10 +1,11 @@
-package org.arso.wallet.bridge;
+package org.arso.wallet.testing;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
+import java.time.Clock;
+import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
 import org.arso.wallet.ledger.application.Transactions;
 import org.arso.wallet.ledger.application.Transactions.Plan;
@@ -19,9 +20,7 @@ import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
 import org.arso.wallet.ledger.port.TxItem.PutPayment;
-import org.arso.wallet.testing.DynamoDbLocal;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 public final class TestLedger {
 
@@ -31,6 +30,7 @@ public final class TestLedger {
     public final String table = DynamoDbLocal.newTable(client);
     public final DynamoLedgerStore store = new DynamoLedgerStore(client, table, Duration.ofHours(24));
     public final Transactions transactions = new Transactions(store, new Transactions.RetryPolicy(5, Duration.ofMillis(20)));
+    public final DynamoAccountHolds holds = new DynamoAccountHolds(client, table, Clock.systemUTC());
 
     public AccountId open() {
         var id = AccountId.random();
@@ -61,14 +61,8 @@ public final class TestLedger {
         });
     }
 
-    /** A LEDGER# item the mapper cannot read (no amount on a deposit). */
-    public void putBrokenEntry(AccountId id, long seq) {
-        client.putItem(b -> b.tableName(table).item(Map.of(
-                "PK", AttributeValue.fromS(id.value()),
-                "SK", AttributeValue.fromS("LEDGER#%012d".formatted(seq)),
-                "account_id", AttributeValue.fromS(id.value()),
-                "seq", AttributeValue.fromN(Long.toString(seq)),
-                "event_type", AttributeValue.fromS("deposit"))));
+    public Account account(AccountId id) {
+        return store.findAccount(id).orElseThrow();
     }
 
     public LedgerEntry entry(AccountId id, long seq) {
