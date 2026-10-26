@@ -24,23 +24,21 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.arso.wallet.ledger.domain.Actor;
+import org.arso.wallet.testing.KafkaLocal;
 import org.arso.wallet.testing.TestLedger;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
 import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.AfterEach;
-import org.testcontainers.kafka.KafkaContainer;
 
 abstract class PoolTest {
 
-    static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.1.0");
     static final Admin ADMIN;
     static final KafkaProducer<String, byte[]> PRODUCER;
 
     static {
-        KAFKA.start();
-        ADMIN = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
+        ADMIN = Admin.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaLocal.bootstrapServers()));
         PRODUCER = new KafkaProducer<>(
-                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()),
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaLocal.bootstrapServers()),
                 new StringSerializer(),
                 new ByteArraySerializer());
     }
@@ -70,7 +68,7 @@ abstract class PoolTest {
     }
 
     WorkerPool start(WorkerSettings settings, RecordHandler handler, Map<String, Object> consumerOverrides) {
-        var config = new HashMap<>(WorkerPool.consumerConfig(KAFKA.getBootstrapServers(), group, null));
+        var config = new HashMap<>(WorkerPool.consumerConfig(KafkaLocal.bootstrapServers(), group, null));
         config.putAll(consumerOverrides);
         var pool = new WorkerPool(config, settings, handler, ErrorClassifier.defaults(), ledger.holds, meters);
         pools.add(pool);

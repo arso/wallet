@@ -14,6 +14,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.arso.wallet.testing.KafkaLocal;
 import org.junit.jupiter.api.Test;
 
 class ReplayTest extends PoolTest {
@@ -25,8 +26,8 @@ class ReplayTest extends PoolTest {
         PRODUCER.send(new ProducerRecord<>(topic, 0, "p-1", "{\"a\":1}".getBytes(), headers)).get();
         send(0, "p-2", "{}");
 
-        try (var producer = new AckedProducer(KAFKA.getBootstrapServers(), Map.of())) {
-            Replay.replay(KAFKA.getBootstrapServers(), producer, new TopicPartition(topic, 0), 0, Duration.ofSeconds(10));
+        try (var producer = new AckedProducer(KafkaLocal.bootstrapServers(), Map.of())) {
+            Replay.replay(KafkaLocal.bootstrapServers(), producer, new TopicPartition(topic, 0), 0, Duration.ofSeconds(10));
         }
 
         var records = readAll(3);
@@ -37,7 +38,7 @@ class ReplayTest extends PoolTest {
 
     List<ConsumerRecord<String, byte[]>> readAll(int expected) {
         var config = Map.<String, Object>of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaLocal.bootstrapServers(),
                 ConsumerConfig.GROUP_ID_CONFIG, group,
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         try (var consumer = new KafkaConsumer<>(config, new StringDeserializer(), new ByteArrayDeserializer())) {

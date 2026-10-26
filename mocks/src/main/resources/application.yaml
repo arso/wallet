@@ -1,0 +1,33 @@
+server:
+  port: 8090
+spring:
+  application:
+    name: mocks
+  threads:
+    virtual:
+      enabled: true
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: non_null
+management:
+  server:
+    port: 8091
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+mocks:
+  kafka-bootstrap-servers: localhost:9092
+  verifiers:
+    enabled: true
+    steps: aml, account_verified, beneficiary_credibility
+    min-latency: 100ms
+    max-latency: 2s
+    max-in-flight: 256
+  aml:
+    enabled: true
+    wallet-url: http://localhost:8080
+    timeout: 2s
+    block-threshold: 1000000
+  transfer:
+    timeout-delay: 30s
