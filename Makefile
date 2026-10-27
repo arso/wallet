@@ -43,7 +43,11 @@ start-apps: ## Start every app in the background (jars must exist), logs in .run
 stop-apps: ## Stop every app started by start-apps
 	@for f in $(RUN)/*.pid; do \
 		[ -f "$$f" ] || continue; \
-		kill $$(cat $$f) 2>/dev/null && echo "stopped $$(basename $$f .pid)"; \
+		pid=$$(cat $$f); \
+		if kill $$pid 2>/dev/null; then \
+			for i in $$(seq 150); do kill -0 $$pid 2>/dev/null || break; sleep 0.2; done; \
+			echo "stopped $$(basename $$f .pid)"; \
+		fi; \
 		rm -f $$f; \
 	done
 

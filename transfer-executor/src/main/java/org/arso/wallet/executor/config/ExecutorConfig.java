@@ -27,6 +27,8 @@ import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.http.client.observation.ClientRequestObservationContext;
+import org.springframework.http.client.observation.DefaultClientRequestObservationConvention;
 import org.springframework.web.client.RestClient;
 
 @Configuration(proxyBeanMethods = false)
@@ -74,6 +76,12 @@ public class ExecutorConfig {
                 .baseUrl(transfer.url().toString())
                 .requestFactory(factory)
                 .observationRegistry(observations)
+                .observationConvention(new DefaultClientRequestObservationConvention() {
+                    @Override
+                    public String getContextualName(ClientRequestObservationContext context) {
+                        return super.getContextualName(context) + " " + uri(context).getValue();
+                    }
+                })
                 .build();
         return new ResilientTransferService(
                 new HttpTransferService(client),

@@ -10,6 +10,8 @@ import org.arso.wallet.api.port.BeneficiaryUnavailableException;
 import org.arso.wallet.ledger.domain.Counterparty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.http.client.observation.ClientRequestObservationContext;
+import org.springframework.http.client.observation.DefaultClientRequestObservationConvention;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import tools.jackson.core.JacksonException;
@@ -30,6 +32,12 @@ public final class HttpBeneficiaryLookup implements BeneficiaryLookup {
                 .baseUrl(baseUrl)
                 .requestFactory(factory)
                 .observationRegistry(observations)
+                .observationConvention(new DefaultClientRequestObservationConvention() {
+                    @Override
+                    public String getContextualName(ClientRequestObservationContext context) {
+                        return super.getContextualName(context) + " " + uri(context).getValue();
+                    }
+                })
                 .build();
         this.mapper = mapper;
     }
