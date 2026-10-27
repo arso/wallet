@@ -14,10 +14,11 @@ Plan: [docs/implementation-plan.md](docs/implementation-plan.md).
 - `transfer-executor` - calls TransferService for `EXECUTING` payments: completes, rejects or marks `NEEDS_REVIEW`; retries and circuit breaker ([details](transfer-executor/README.md))
 - `timeout-checker` - rejects payments still `PENDING` at `requested_at` + 1h, re-drives stuck `EXECUTING` payments ([details](timeout-checker/README.md))
 - `mocks` - beneficiary, TransferService, verifiers, AML ([rules](mocks/README.md))
+- `e2e` - user journeys on the full stack in Docker, REST only ([details](e2e/README.md))
 
 ## Build and test
 
-`./gradlew clean build` (needs Docker for Testcontainers).
+`./gradlew clean build` (needs Docker for Testcontainers). End-to-end tests are separate and slow: `make e2e` (`./gradlew :e2e:e2eTest`).
 
 ## Run locally
 

@@ -38,6 +38,7 @@ mocks:
     steps: aml, account_verified, beneficiary_credibility
     min-latency: 100ms
     max-latency: 2s
+    slow-latency: 5s
     max-in-flight: 256
   aml:
     enabled: true

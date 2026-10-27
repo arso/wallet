@@ -60,6 +60,7 @@ class MocksTest {
         registry.add("mocks.verifiers.max-latency", () -> "50ms");
         registry.add("mocks.aml.wallet-url", () -> WalletStub.url().toString());
         registry.add("mocks.aml.block-threshold", () -> "5000");
+        registry.add("mocks.verifiers.slow-latency", () -> "1s");
         registry.add("mocks.transfer.timeout-delay", () -> "2s");
     }
 
@@ -95,8 +96,9 @@ class MocksTest {
         var allowed = withdrawRequest("b-1");
         var denied = withdrawRequest("b-deny-kyc");
         var silent = withdrawRequest("b-silent-aml");
+        var slow = withdrawRequest("b-slow-aml");
 
-        var results = readResults(List.of(allowed.paymentId(), denied.paymentId(), silent.paymentId()), 5);
+        var results = readResults(List.of(allowed.paymentId(), denied.paymentId(), silent.paymentId(), slow.paymentId()), 7);
 
         assertThat(results).filteredOn(r -> r.paymentId().equals(allowed.paymentId()))
                 .extracting(r -> r.step() + "=" + r.allowed())
@@ -107,6 +109,9 @@ class MocksTest {
         assertThat(results).filteredOn(r -> r.paymentId().equals(silent.paymentId()))
                 .extracting(r -> r.step() + "=" + r.allowed())
                 .containsExactly("kyc=true");
+        assertThat(results).filteredOn(r -> r.paymentId().equals(slow.paymentId()))
+                .extracting(VerificationResult::step)
+                .containsExactly("kyc", "aml");
     }
 
     @Test

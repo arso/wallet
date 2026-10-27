@@ -14,12 +14,14 @@ public final class Verifiers {
     private final ResultPublisher publisher;
     private final Duration minLatency;
     private final Duration maxLatency;
+    private final Duration slowLatency;
     private final Clock clock;
 
-    public Verifiers(ResultPublisher publisher, Duration minLatency, Duration maxLatency, Clock clock) {
+    public Verifiers(ResultPublisher publisher, Duration minLatency, Duration maxLatency, Duration slowLatency, Clock clock) {
         this.publisher = publisher;
         this.minLatency = minLatency;
         this.maxLatency = maxLatency;
+        this.slowLatency = slowLatency;
         this.clock = clock;
     }
 
@@ -28,7 +30,9 @@ public final class Verifiers {
         if (beneficiary.contains("silent-" + step)) {
             return;
         }
-        Thread.sleep(ThreadLocalRandom.current().nextLong(minLatency.toMillis(), maxLatency.toMillis() + 1));
+        Thread.sleep(beneficiary.contains("slow-" + step)
+                ? slowLatency.toMillis()
+                : ThreadLocalRandom.current().nextLong(minLatency.toMillis(), maxLatency.toMillis() + 1));
         var allowed = !beneficiary.contains("deny-" + step);
         publisher.publish(new VerificationResult(
                 Ulid.next(),

@@ -9,5 +9,6 @@ include(
     "mocks",
     "completion-service",
     "transfer-executor",
-    "timeout-checker"
+    "timeout-checker",
+    "e2e"
 )

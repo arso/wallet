@@ -8,7 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("mocks")
 public record MocksProperties(String kafkaBootstrapServers, Verifiers verifiers, Aml aml, Transfer transfer) {
 
-    public record Verifiers(boolean enabled, List<String> steps, Duration minLatency, Duration maxLatency, int maxInFlight) {}
+    public record Verifiers(
+            boolean enabled, List<String> steps, Duration minLatency, Duration maxLatency, Duration slowLatency, int maxInFlight) {}
 
     public record Aml(boolean enabled, URI walletUrl, Duration timeout, long blockThreshold) {}
 
