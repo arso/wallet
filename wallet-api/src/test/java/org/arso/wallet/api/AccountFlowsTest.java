@@ -6,10 +6,15 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpStatus;
 import tools.jackson.databind.JsonNode;
 
 class AccountFlowsTest extends ApiTest {
+
+    private static final String PAYER = """
+            "payer":{"payer_id":"p-1","name":"John","account_masked":"****1234","account_fingerprint":"hmac:1","country":"PL"}""";
 
     @Test
     void depositWithdrawAndReadLedger() {
@@ -43,26 +48,38 @@ class AccountFlowsTest extends ApiTest {
     }
 
     @Test
-    void rejectsInvalidRequests() {
-        var id = account(10);
+    void rejectsPostWithoutIdempotencyKey() {
+        assertError(post("/accounts", null, "{}"), HttpStatus.BAD_REQUEST, "invalid_request");
+    }
 
-        assertThat(post("/accounts", null, "{}").status()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertError(post("/accounts", "{\"currency\":\"XYZ1\"}"), HttpStatus.BAD_REQUEST, "invalid_currency");
-        assertError(deposit(id, UUID.randomUUID().toString(), 0, "tx-0"), HttpStatus.BAD_REQUEST, "invalid_amount");
-        assertError(post("/accounts/" + id + "/deposits", "{not json"), HttpStatus.BAD_REQUEST, "invalid_request");
-        assertError(post("/accounts/" + id + "/withdrawals", "{\"amount\":5,\"currency\":\"EUR\",\"beneficiary_id\":\"b-1\"}"),
-                HttpStatus.BAD_REQUEST, "currency_mismatch");
-        assertError(withdraw(id, UUID.randomUUID().toString(), 11), HttpStatus.UNPROCESSABLE_CONTENT, "insufficient_funds");
-        assertError(post("/accounts/" + id + "/withdrawals", "{\"amount\":5,\"beneficiary_id\":\"missing\"}"),
-                HttpStatus.NOT_FOUND, "not_found");
-        assertError(get("/accounts/01JBC3Z8Q4M6T2N9X5R7K1W0HV"), HttpStatus.NOT_FOUND, "not_found");
-        assertError(get("/accounts/not-an-id"), HttpStatus.NOT_FOUND, "not_found");
-        assertError(get("/payments/01JBC3Z8Q4M6T2N9X5R7K1W0HV"), HttpStatus.NOT_FOUND, "not_found");
-        assertError(get("/accounts/" + id + "/ledger?limit=500"), HttpStatus.BAD_REQUEST, "invalid_request");
-        var unknownPath = get("/no-such-path");
-        assertThat(unknownPath.status()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(unknownPath.number("status")).isEqualTo(404);
-        assertThat(unknownPath.text("title")).isEqualTo("Not Found");
+    @Test
+    void unknownPathIsProblemDetail() {
+        var response = get("/no-such-path");
+        assertThat(response.status()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.number("status")).isEqualTo(404);
+        assertThat(response.text("title")).isEqualTo("Not Found");
+    }
+
+    @ParameterizedTest(name = "{0} {1} {2} -> {3} {4}")
+    @CsvSource(delimiter = '|', textBlock = """
+            POST | /accounts                            | {"currency":"XYZ1"}                                            | 400 | invalid_currency
+            POST | /accounts/{id}/deposits              | {not json                                                      | 400 | invalid_request
+            POST | /accounts/{id}/deposits              | {"amount":0,"external_tx_id":"tx-1",{payer}}                   | 400 | invalid_amount
+            POST | /accounts/{id}/deposits              | {"amount":9223372036854775807,"external_tx_id":"tx-1",{payer}} | 400 | invalid_amount
+            POST | /accounts/{id}/withdrawals           | {"amount":1.99,"beneficiary_id":"b-1"}                         | 400 | invalid_request
+            POST | /accounts/{id}/withdrawals           | {"amount":"1","beneficiary_id":"b-1"}                          | 400 | invalid_request
+            POST | /accounts/{id}/withdrawals           | {"amount":5,"currency":"EUR","beneficiary_id":"b-1"}           | 400 | currency_mismatch
+            POST | /accounts/{id}/withdrawals           | {"amount":11,"beneficiary_id":"b-1"}                           | 422 | insufficient_funds
+            POST | /accounts/{id}/withdrawals           | {"amount":5,"beneficiary_id":"missing"}                        | 404 | not_found
+            GET  | /accounts/01JBC3Z8Q4M6T2N9X5R7K1W0HV |                                                                | 404 | not_found
+            GET  | /accounts/not-an-id                  |                                                                | 404 | not_found
+            GET  | /payments/01JBC3Z8Q4M6T2N9X5R7K1W0HV |                                                                | 404 | not_found
+            GET  | /accounts/{id}/ledger?limit=500      |                                                                | 400 | invalid_request
+            """)
+    void rejectsInvalidRequest(String method, String path, String body, int status, String error) {
+        var url = path.replace("{id}", account(10));
+        var response = method.equals("GET") ? get(url) : post(url, body.replace("{payer}", PAYER));
+        assertError(response, HttpStatus.valueOf(status), error);
     }
 
     @Test

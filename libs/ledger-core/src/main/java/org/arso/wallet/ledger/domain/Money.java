@@ -28,7 +28,11 @@ public record Money(long amountMinor, Currency currency) {
 
     public Money plus(Money other) {
         requireSameCurrency(other);
-        return new Money(Math.addExact(amountMinor, other.amountMinor), currency);
+        try {
+            return new Money(Math.addExact(amountMinor, other.amountMinor), currency);
+        } catch (ArithmeticException e) {
+            throw new DomainException(INVALID_AMOUNT, "amount too large");
+        }
     }
 
     public Money minus(Money other) {
