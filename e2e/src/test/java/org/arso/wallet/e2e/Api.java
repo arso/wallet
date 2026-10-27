@@ -3,7 +3,6 @@ package org.arso.wallet.e2e;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -73,7 +72,7 @@ final class Api {
         return accepted.text("payment_id");
     }
 
-    static Response retryWhileBusy(String key, Function<String, Response> request) {
+    private static Response retryWhileBusy(String key, Function<String, Response> request) {
         return await().pollDelay(Duration.ZERO).pollInterval(Duration.ofMillis(50)).atMost(Duration.ofSeconds(30))
                 .until(() -> request.apply(key), response -> response.status() != 503);
     }
@@ -83,18 +82,18 @@ final class Api {
     }
 
     static JsonNode payment(String id) {
-        return get(Stack.wallet(), "/payments/" + id).body();
+        return get("/payments/" + id).body();
     }
 
     static long balance(String account) {
-        return get(Stack.wallet(), "/accounts/" + account).body().path("balance").asLong();
+        return get("/accounts/" + account).body().path("balance").asLong();
     }
 
     static List<JsonNode> ledger(String account) {
         var entries = new ArrayList<JsonNode>();
         var path = "/accounts/" + account + "/ledger?limit=100";
         while (path != null) {
-            var page = get(Stack.wallet(), path).body();
+            var page = get(path).body();
             page.path("entries").forEach(entries::add);
             var next = page.path("next_before_seq");
             path = next.isNumber() ? "/accounts/" + account + "/ledger?limit=100&before_seq=" + next.asLong() : null;
@@ -110,12 +109,8 @@ final class Api {
         return awaitPayment(id, p -> FINAL.contains(p.path("status").asString()));
     }
 
-    static int transferAttempts(String payment) {
-        return get(Stack.mocks(), "/transfers/" + payment).body().path("attempts").asInt();
-    }
-
-    static Response get(URI base, String path) {
-        return send(HttpRequest.newBuilder(base.resolve(path)).GET());
+    static Response get(String path) {
+        return send(HttpRequest.newBuilder(Stack.wallet().resolve(path)).GET());
     }
 
     static Response post(String path, String json) {

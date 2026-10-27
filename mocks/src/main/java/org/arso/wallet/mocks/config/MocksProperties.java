@@ -13,5 +13,5 @@ public record MocksProperties(String kafkaBootstrapServers, Verifiers verifiers,
 
     public record Aml(boolean enabled, URI walletUrl, Duration timeout, long blockThreshold) {}
 
-    public record Transfer(Duration delay) {}
+    public record Transfer(Duration timeoutDelay) {}
 }
