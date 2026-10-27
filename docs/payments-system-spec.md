@@ -1,6 +1,7 @@
 # Wallet & Payments System — Spec
 
 Status: design agreed, ready for implementation planning.
+This is the original design. Agreed changes are listed in the [implementation plan](implementation-plan.md#2-spec-changes); the current schema, events and API are in [ARCHITECTURE.md](ARCHITECTURE.md).
 Style: brief, plain English. Diagrams in Mermaid.
 
 ---
@@ -88,7 +89,7 @@ flowchart LR
 - Micrometer + Prometheus registry (via Actuator)
 - Resilience4j (circuit breaker, retries with backoff + jitter)
 - AWS SDK v2 (DynamoDB)
-- Kafka clients via Spring Kafka factories (custom poll loop + worker pool, not `@KafkaListener`)
+- Plain Kafka clients, no Spring Kafka (custom poll loop + worker pool, not `@KafkaListener`)
 - Tracing: Micrometer Tracing + OpenTelemetry exporter
 - Hexagonal architecture (ports and adapters), enforced with ArchUnit tests
 
@@ -303,7 +304,7 @@ Consumer settings (completion, transfer executor):
 
 ### 8.1 Bridge (DynamoDB Streams → Kafka)
 
-- Logic in a plain class. Prod: thin Lambda wrapper. Tests: loop reading LocalStack stream.
+- Logic in a plain class. Prod: thin Lambda wrapper. Tests and local runs: loop reading the DynamoDB Local stream.
 - Only new (`INSERT`) items with SK starting `LEDGER#`. Ignore everything else.
 - Publish to `ledger-events`. If `withdraw`, also to `withdraw-requests`.
 - Retries can cause duplicates — acceptable.
@@ -603,7 +604,7 @@ sequenceDiagram
 | `POST /payments/{payment_id}/cancel` | 200 | only while `PENDING` |
 | `GET /payments/{payment_id}` | 200 | status, verifications, timestamps |
 | `GET /accounts/{id}` | 200 | balance, status |
-| `GET /accounts/{id}/ledger` | 200 | paged, newest first, optional `from`/`to` (GSI1) |
+| `GET /accounts/{id}/ledger` | 200 | paged, newest first, `before_seq` and `limit` (no GSI, plan 3.2) |
 | `POST /internal/accounts/{id}/block` | 200 | internal (AML) |
 | `POST /internal/accounts/{id}/unblock` | 200 | internal |
 
@@ -663,10 +664,10 @@ All time values must be configurable so tests can use seconds.
 ## 13. Testing
 
 - Testcontainers:
-  - LocalStack: DynamoDB + Streams
+  - DynamoDB Local: DynamoDB + Streams
   - Kafka (or Redpanda)
   - WireMock or in-process stubs: TransferService, Beneficiary, verifiers, AML
-- Bridge runs as an in-test loop over LocalStack stream.
+- Bridge runs as an in-test loop over the DynamoDB Local stream.
 - Short timeouts/delays via config.
 - Key scenarios:
   - Concurrent withdrawals on one account → no negative balance
@@ -833,7 +834,7 @@ Gauges based on DynamoDB counts (`EXECUTING`, `NEEDS_REVIEW`) need a periodic qu
 |---|---|
 | HTTP request stats | built-in (`http.server.requests`); enable percentile histograms in config |
 | JVM, GC, threads, CPU, process, logging | built-in |
-| Kafka client metrics (fetch, client-side lag, producer sends/errors) | built-in via Spring Kafka factories; works with the custom poll loop |
+| Kafka client metrics (fetch, client-side lag, producer sends/errors) | not collected yet: the apps use plain Kafka clients, so bind Micrometer `KafkaClientMetrics` to add them |
 | Tracing | built-in Micrometer Tracing + OpenTelemetry exporter (check exact starter for Boot 4) |
 | Circuit breaker, retries | Resilience4j → Micrometer (automatic) |
 | DynamoDB latency | **custom**: AWS SDK v2 `MetricPublisher` or `ExecutionInterceptor` → Micrometer |

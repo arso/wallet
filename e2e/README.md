@@ -2,7 +2,7 @@
 
 End-to-end tests (plan phase 11): user journeys on the full stack, through the REST API only, asserting on results. Failure scenarios (crashes, duplicates, rebalance, timeouts) are covered by the module tests.
 
-`make e2e` (`./gradlew :e2e:e2eTest`, not part of `build`) builds the boot jars and the bridge, builds images from the module Dockerfiles and starts everything with Testcontainers on one Docker network: DynamoDB Local, Kafka, wallet-api, bridge (local stream runner), mocks (verifiers, AML, beneficiary, TransferService), completion-service, transfer-executor and timeout-checker. Every app runs with its default config.
+`make e2e` (`./gradlew :e2e:e2eTest`, not part of `build`) builds the boot jars and the bridge, builds images from the module Dockerfiles (the bridge image is defined inline) and starts everything with Testcontainers on one Docker network: DynamoDB Local, Kafka, wallet-api, bridge (local stream runner), mocks (verifiers, AML, beneficiary, TransferService), completion-service, transfer-executor and timeout-checker. Every app runs with its default config.
 
 After each journey the invariants from spec 12 are checked on the accounts it used: seq gap-free from 1, replaying the ledger gives every `balance_after` and the account balance, balance never negative, every payment final with exactly the matching ledger entry (`NEEDS_REVIEW`: none, so no refund), ledger entries never change.
 

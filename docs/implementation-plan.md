@@ -2,7 +2,7 @@
 
 Spec: [payments-system-spec.md](payments-system-spec.md). Section numbers below (e.g. "spec 6.2") point to it.
 
-Status: agreed, not started.
+Status: implemented (phases 0-11).
 
 ---
 
@@ -597,7 +597,7 @@ Fail and alert (spec change 22): the bridge never skips a record and never holds
 - Every hold attempt ends in exactly one of three ways: held; unattributable (above); or an infrastructure error (transient, retried). Nothing else can keep the record open.
 - Repeat with the same `hold_ref` (a resent bridge batch, or a redelivery after a crash between the hold write and mark done) is a no-op: `ACCOUNT#` keeps every `hold_ref` of the current hold in the set `hold_refs`, and the hold condition is `attribute_not_exists(hold_refs) OR NOT contains(hold_refs, :ref)`. Release removes the set.
 - Rollout: deploy readers that accept `ON_HOLD` (and the new ledger event types) in every service before any service can write a hold.
-- `ExponentialBackOff` (Spring core) with `maxElapsedTime` for the budget. No `DefaultErrorHandler` (it needs listener containers).
+- Exponential backoff with jitter in `FailurePolicy`; the budget is a max attempt count and a max elapsed time. No `DefaultErrorHandler` (it needs listener containers).
 - What a failed record leaves behind:
 
 | Service | Payment left in | Recovery |
@@ -676,8 +676,8 @@ Each phase ends with passing tests.
 ### Phase 0 - Build setup
 - Gradle multi-module build with a version catalog.
 - Spring Boot 4, Java 25, MVC starter, `spring.threads.virtual.enabled=true`.
-- Dependencies: AWS SDK v2 DynamoDB (sync, Apache HTTP client with explicit pool size), Spring Kafka, Resilience4j, Micrometer + Prometheus, Micrometer Tracing + OpenTelemetry, ULID, ArchUnit, Testcontainers (LocalStack, Kafka), WireMock.
-- `docker-compose` for local LocalStack + Kafka.
+- Dependencies: AWS SDK v2 DynamoDB (sync, Apache HTTP client with explicit pool size), Kafka clients, Resilience4j, Micrometer + Prometheus, Micrometer Tracing + OpenTelemetry, ArchUnit, Testcontainers (DynamoDB Local, Kafka), WireMock. ULIDs come from a small generator in `ledger-core`.
+- `docker-compose` for local DynamoDB Local, Kafka, Jaeger and Prometheus.
 - One Dockerfile per app.
 - ArchUnit rules from spec 4, plus: no DynamoDB `Scan` in any module.
 - Spec ref: 4.
@@ -696,10 +696,10 @@ Each phase ends with passing tests.
 - Optimistic lock retry: re-read, random backoff, default 3 tries, then fail (API: 503; consumers: transient error, see 5.6).
 - Idempotency store (section 3.8): canonical hash, consistent lookup, success put in the transaction, error put, TTL-aware condition.
 - Transaction outcome classifier and per-item condition handling (section 3.11). `ReturnValuesOnConditionCheckFailure=ALL_OLD` on every condition; `ClientRequestToken` on same-request retries.
-- Tests: classifier unit tests with mixed reason lists, including several failed items (e.g. `ACCOUNT#` balance + `LEDGER#` + `IDEMPOTENCY#` resolves to replay); fake DynamoDB client returning chosen cancel reasons (LocalStack cannot reliably produce `TransactionConflict`): conflict on mark-executing ends `EXECUTING`, conflict on reject / complete / cancel ends in the right final state, timeout after commit + retry with the same token applies once.
+- Tests: classifier unit tests with mixed reason lists, including several failed items (e.g. `ACCOUNT#` balance + `LEDGER#` + `IDEMPOTENCY#` resolves to replay); fake DynamoDB client returning chosen cancel reasons (DynamoDB Local cannot reliably produce `TransactionConflict`): conflict on mark-executing ends `EXECUTING`, conflict on reject / complete / cancel ends in the right final state, timeout after commit + retry with the same token applies once.
 - Ledger query: main table, newest first, paged by `seq` (see 3.2).
 - Stale read tests: test DynamoDB client where an eventually consistent `GetItem` returns the previous version; unit check that every `PAYMENT#` `GetItem` sets `ConsistentRead=true`.
-- LocalStack tests, including concurrent withdrawals on one account.
+- DynamoDB Local tests, including concurrent withdrawals on one account.
 - Spec ref: 5, 6, 12.
 
 ### Phase 3 - `wallet-api`

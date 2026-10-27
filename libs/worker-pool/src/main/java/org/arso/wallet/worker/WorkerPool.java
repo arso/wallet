@@ -43,8 +43,31 @@ import org.arso.wallet.worker.RecordHandler.Outcome;
 import org.arso.wallet.worker.WorkerSettings.Mode;
 
 /**
- * One poll thread dispatching to workers (plan phase 5). Only the poll thread touches the consumer and partition state;
- * workers report back through {@code completions}. Offsets are committed only when contiguous.
+ * Kafka consumer that processes records of one partition in parallel (spec 8.4, plan phase 5).
+ *
+ * <p>One poll thread owns the consumer and all partition state. It hands records to workers, and workers report back
+ * through {@code completions}. Each partition commits only up to its highest contiguous done offset, so a crash
+ * redelivers unfinished records and never skips one. Handlers must be idempotent.
+ *
+ * <p>Dispatch modes ({@link Mode}):
+ * <ul>
+ *   <li>{@code KEYED}: a fixed set of workers with bounded queues, picked by key hash, so records with the same key
+ *       run in order.
+ *   <li>{@code UNORDERED}: one virtual thread per record, capped by a semaphore.
+ *   <li>{@code DELAYED}: like {@code UNORDERED}, but a record starts only at its due time.
+ * </ul>
+ *
+ * <p>Flow control pauses a partition instead of blocking the poll thread, so {@code poll()} keeps running and the
+ * consumer never leaves the group. A partition stays paused while any reason is set: full queues, no free permit, a
+ * record not yet due, too many uncommitted offsets, or an open circuit. A record that keeps failing puts its account
+ * on hold ({@link FailurePolicy}) instead of blocking the partition.
+ *
+ * <p>Why not Spring Kafka listener containers: a container processes one partition on one thread, so a single slow
+ * record (a transfer retried for minutes, a verification timeout waiting an hour) stalls every record behind it, and
+ * parallelism is capped by the partition count. Its {@code DefaultErrorHandler} retries by seeking back, which also
+ * blocks the partition, or sends the record to a dead letter topic, which drops the per-account hold. Delayed
+ * processing would need {@code sleep} or seek tricks that risk rebalances. This pool keeps the plain Kafka consumer
+ * and adds only per-partition parallelism, contiguous commits, pausing and the hold policy.
  */
 public final class WorkerPool implements Runnable {
 

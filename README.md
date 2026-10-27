@@ -1,7 +1,8 @@
 # Description
 
-Wallet and payments system. Spec: [docs/payments-system-spec.md](docs/payments-system-spec.md).
-Plan: [docs/implementation-plan.md](docs/implementation-plan.md).
+This project is a showcase of a wallet built on a single DynamoDB table for high-volume deposits and withdrawals. Every balance change is stored as an append-only ledger event, following an event sourcing model, and the DynamoDB stream feeds those events to Kafka. Withdrawals run as an asynchronous saga through verification, execution and timeout services. Each part scales horizontally. It is not a real payment system: the external actors (beneficiary lookup, verifiers, AML and the transfer service) are mocked. More detail is in the [architecture](docs/ARCHITECTURE.md), the [spec](docs/payments-system-spec.md) and the [implementation plan](docs/implementation-plan.md).
+
+The project was also an exercise in solving a complex distributed problem effectively in a very short time (about 18 hours), by one engineer working with Claude, while (hopefully 🤞) keeping the code high quality, readable and well tested.
 
 ## Modules
 

@@ -27,7 +27,7 @@ flowchart LR
     ddb -->|stream| bridge[bridge]
     bridge --> le[[ledger-events]]
     bridge --> wr[[withdraw-requests]]
-    wr --> ver[Verifiers: aml, kyc]
+    wr --> ver[Verifiers: one per step]
     ver --> vr[[verification-results]]
     vr --> comp[completion-service]
     wr -->|delayed| tc[timeout-checker]
@@ -199,7 +199,7 @@ Payment:
   "payment_id": "01JB8ZC4R1T6E9P3XQ0M2KJHAB", "account_id": "01JB8Z5X3K9QH2M7RYT4VWD6NC",
   "amount": 3000, "currency": "USD", "beneficiary_id": "b-1", "status": "PENDING",
   "received_at": "2026-10-27T10:05:00.000Z",
-  "required_steps": ["aml", "kyc"],
+  "required_steps": ["aml", "account_verified", "beneficiary_credibility"],
   "verifications": {
     "aml": {"allowed": true, "decided_at": "2026-10-27T10:05:01.200Z", "recorded_at": "2026-10-27T10:05:01.250Z"}
   }
@@ -213,7 +213,7 @@ Capacity for one operation without retries. The numbers assume:
 - every item is under 1KB;
 - every read is a strongly consistent GetItem (1 RCU per 4KB);
 - a transactional write costs 2 WCU per item;
-- there are 2 verification steps (`aml`, `kyc`).
+- there are 3 verification steps, the default `wallet.verification.steps`: `aml`, `account_verified`, `beneficiary_credibility`.
 
 Deposit: 2 RCU, 8 WCU.
 
@@ -223,14 +223,14 @@ Deposit: 2 RCU, 8 WCU.
 | API: read account | 1 | |
 | API: transaction with 4 items (account, ledger entry, deposit dedup, idempotency) | | 8 |
 
-Withdrawal, end to end: 6 RCU, 20 WCU.
+Withdrawal, end to end: 6 RCU, 21 WCU.
 
 | Step | RCU | WCU |
 |---|---|---|
 | API: idempotency lookup (miss) | 1 | |
 | API: read account | 1 | |
 | API: transaction with 4 items (account, ledger entry, payment, idempotency) | | 8 |
-| completion-service: record each verification step (plain UpdateItem, 1 WCU each) | | 2 |
+| completion-service: record each verification step (plain UpdateItem, 1 WCU each) | | 3 |
 | completion-service: move to `EXECUTING`, a transaction with a ConditionCheck on the account plus the payment update | | 4 |
 | transfer-executor: read payment, read it again in `complete()`, read account | 3 | |
 | transfer-executor: transaction with 3 items (account, ledger entry, payment) | | 6 |
@@ -244,24 +244,24 @@ Not counted:
 
 The executor reads the same payment twice. Passing the `Payment` into `complete`, as `reject` already does, would save 1 RCU.
 
-At the peak of 20k requests/s (80% withdrawals, 20% deposits), the table needs about 104k RCU/s and 352k WCU/s. That is a peak, not the average load, so production should use provisioned capacity with autoscaling: it is sized for the base load and scales up toward the peak. Paying for the peak around the clock would waste most of that capacity.
+At the peak of 20k requests/s (80% withdrawals, 20% deposits), the table needs about 104k RCU/s and 368k WCU/s. That is a peak, not the average load, so production should use provisioned capacity with autoscaling: it is sized for the base load and scales up toward the peak. Paying for the peak around the clock would waste most of that capacity.
 
 Rough monthly cost if the peak lasted all month (us-east-1 list prices, DynamoDB only). This is an upper bound, and cost scales linearly with the average load:
 
 | Mode | Cost/month |
 |---|---|
-| On-demand (\$0.625 per million writes, \$0.125 per million reads) | ~\$612k (writes ~\$578k, reads ~\$34k) |
-| Provisioned at 100% use (\$0.00065 per WCU-hour, \$0.00013 per RCU-hour) | ~\$177k |
-| Provisioned at a 70% autoscaling target | ~\$253k |
+| On-demand (\$0.625 per million writes, \$0.125 per million reads) | ~\$638k (writes ~\$604k, reads ~\$34k) |
+| Provisioned at 100% use (\$0.00065 per WCU-hour, \$0.00013 per RCU-hour) | ~\$185k |
+| Provisioned at a 70% autoscaling target | ~\$264k |
 | Reserved capacity | up to 54% off provisioned (1-year term), up to 77% (3-year) |
 
 How these figures were calculated (a month is 730 hours, or about 2.63M seconds):
 
-- Load: 16k withdrawals/s × (6 RCU, 20 WCU) + 4k deposits/s × (2 RCU, 8 WCU) = 104k RCU/s and 352k WCU/s.
-- On-demand writes: 352k × 2.63M s = 925 billion units, × \$0.625 per million = ~\$578k.
+- Load: 16k withdrawals/s × (6 RCU, 21 WCU) + 4k deposits/s × (2 RCU, 8 WCU) = 104k RCU/s and 368k WCU/s.
+- On-demand writes: 368k × 2.63M s = 967 billion units, × \$0.625 per million = ~\$604k.
 - On-demand reads: 104k × 2.63M s = 273 billion units, × \$0.125 per million = ~\$34k.
-- Provisioned writes: 352k WCU × \$0.00065 × 730 h = ~\$167k. Reads: 104k RCU × \$0.00013 × 730 h = ~\$10k. Together ~\$177k.
-- 70% autoscaling target: \$177k / 0.7 = ~\$253k.
+- Provisioned writes: 368k WCU × \$0.00065 × 730 h = ~\$175k. Reads: 104k RCU × \$0.00013 × 730 h = ~\$10k. Together ~\$185k.
+- 70% autoscaling target: \$185k / 0.7 = ~\$264k.
 - Storage: (16k × 1.7KB + 4k × 0.9KB) per second × 2.63M s = ~80TB a month, × \$0.25 per GB = ~\$20k.
 
 Prices: [DynamoDB on-demand pricing](https://aws.amazon.com/dynamodb/pricing/on-demand/) and [provisioned pricing](https://aws.amazon.com/dynamodb/pricing/provisioned/), us-east-1, checked on 2026-10-27.
@@ -326,7 +326,7 @@ All payloads are JSON with `schema_version: 1`.
 ```json
 {
   "event_id": "01JB8ZC5A2B3C4D5E6F7G8H9JK", "schema_version": 1,
-  "payment_id": "01JB8ZC4R1T6E9P3XQ0M2KJHAB", "step": "kyc",
+  "payment_id": "01JB8ZC4R1T6E9P3XQ0M2KJHAB", "step": "account_verified",
   "allowed": false, "details": "document expired", "decided_at": "2026-10-27T10:05:02.000Z"
 }
 ```
