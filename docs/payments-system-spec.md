@@ -797,12 +797,12 @@ flowchart LR
 
 **5. End-to-end processing time**
 - Wallet API stores `received_at` (when the HTTP request arrived) on `PAYMENT#`.
-- Deposits (synchronous): `deposit_processing_seconds` — histogram, request received → transaction committed. Labels: `outcome`.
+- Deposits (synchronous): `http_server_requests_seconds` for the deposit route covers request received → transaction committed, by `status`.
 - Withdrawals: `withdrawal_end_to_end_seconds` — histogram, `finalized_at − received_at`.
   - Recorded by whichever component writes the final status (executor, completion, timeout checker, API on cancel).
   - Labels: `outcome` (completed, rejected, cancelled, needs_review), `reason` (for rejected).
 - Stage breakdown (histograms, to find where time goes):
-  - `withdrawal_accept_seconds` — request received → `withdraw` committed (API)
+  - `http_server_requests_seconds` for the withdrawal route - request received → `withdraw` committed (API)
   - `bridge_stream_lag_seconds` — committed → published to Kafka (bridge)
   - `verification_step_seconds` — per step, request → result. Label: `step`
   - `withdrawal_verification_seconds` — `withdraw` committed → `EXECUTING` (completion)
@@ -810,17 +810,17 @@ flowchart LR
 - Pod clocks are NTP-synced on EKS; small skew is acceptable.
 
 **6. Rates (counters)**
-- `deposits_total` — labels: `outcome` (ok, error code)
-- `withdrawals_accepted_total`
-- `payments_finalized_total` — labels: `outcome`, `reason`
 - `api_errors_total` — labels: `route`, `error` (insufficient_funds, account_blocked, not_cancellable, idempotency_mismatch, lock_retries_exhausted, invalid_request, not_found)
 - `optimistic_lock_retries_total` — labels: `service`
-- `transfer_attempts_total` — labels: `result` (ok, failed, unknown)
 - `late_verification_results_total` — labels: `step`
-- `account_blocks_total`
+- Counts already covered by another metric are not separate counters:
+  - finalized withdrawals: `withdrawal_end_to_end_seconds_count`, labels `outcome`, `reason`
+  - deposits, accepted withdrawals, account blocks: `http_server_requests_seconds_count` by route and status (includes idempotent replays)
+  - transfer attempts: `http_client_requests_seconds_count{uri="/transfers"}` by status (2xx ok, 422 failed, anything else unknown)
 
 **7. Internal health (gauges)**
-- `worker_inflight`, `worker_queue_depth` — labels: `service`
+- `worker_inflight` (records being processed), `worker_queue_depth` (polled, not yet handed to a worker) - labels: `service`
+- `worker_paused_partitions` - labels: `service`, `reason` (not_due, backpressure, uncommitted_cap, circuit_open)
 - `circuit_breaker_state` — 0 closed, 1 half-open, 2 open
 - `payments_executing` and oldest age in `EXECUTING`
 - `payments_needs_review` count

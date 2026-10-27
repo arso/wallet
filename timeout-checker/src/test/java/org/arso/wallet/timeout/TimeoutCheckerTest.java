@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,16 +19,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.arso.wallet.events.Beneficiary;
 import org.arso.wallet.events.Events;
@@ -99,6 +95,9 @@ class TimeoutCheckerTest {
 
     @Autowired
     CheckerProperties properties;
+
+    @Autowired
+    ObservationRegistry observations;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -238,7 +237,7 @@ class TimeoutCheckerTest {
         await(() -> DYNAMO.reads(payment.id().value()) == 1);
 
         pool.stop();
-        restarted = new CheckerConfig().checkerPool(checker, holds, properties, meters);
+        restarted = new CheckerConfig().checkerPool(checker, holds, properties, meters, observations);
         restarted.start();
 
         await(() -> DYNAMO.reads(payment.id().value()) >= 2);
@@ -344,26 +343,7 @@ class TimeoutCheckerTest {
     }
 
     static List<ConsumerRecord<String, byte[]>> transferRequests(Payment payment) {
-        var config = Map.<String, Object>of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaLocal.bootstrapServers(),
-                ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        try (var consumer = new KafkaConsumer<>(config, new StringDeserializer(), new ByteArrayDeserializer())) {
-            var tps = consumer.partitionsFor(Events.TRANSFER_REQUESTS).stream()
-                    .map(p -> new TopicPartition(p.topic(), p.partition()))
-                    .toList();
-            consumer.assign(tps);
-            consumer.seekToBeginning(tps);
-            var end = consumer.endOffsets(tps);
-            var found = new ArrayList<ConsumerRecord<String, byte[]>>();
-            while (tps.stream().anyMatch(tp -> consumer.position(tp) < end.get(tp))) {
-                consumer.poll(Duration.ofMillis(200)).forEach(r -> {
-                    if (payment.id().value().equals(r.key())) {
-                        found.add(r);
-                    }
-                });
-            }
-            return found;
-        }
+        return KafkaLocal.records(Events.TRANSFER_REQUESTS, payment.id().value());
     }
 
     static long committed() {

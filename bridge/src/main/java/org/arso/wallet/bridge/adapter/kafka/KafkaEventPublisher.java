@@ -2,11 +2,13 @@ package org.arso.wallet.bridge.adapter.kafka;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -80,6 +82,15 @@ public final class KafkaEventPublisher implements EventPublisher, AutoCloseable 
     private static RecordHeaders headers(Message message) {
         var headers = new RecordHeaders();
         message.headers().forEach((k, v) -> headers.add(k, v.getBytes(StandardCharsets.UTF_8)));
+        headers.add("traceparent", traceparent().getBytes(StandardCharsets.UTF_8));
         return headers;
+    }
+
+    /** W3C trace context starting a new sampled trace per record; the bridge exports no span itself (plan phase 10). */
+    private static String traceparent() {
+        var random = ThreadLocalRandom.current();
+        var hex = HexFormat.of();
+        return "00-" + hex.toHexDigits(random.nextLong()) + hex.toHexDigits(random.nextLong())
+                + "-" + hex.toHexDigits(random.nextLong()) + "-01";
     }
 }

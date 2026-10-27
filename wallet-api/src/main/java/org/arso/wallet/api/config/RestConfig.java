@@ -1,5 +1,6 @@
 package org.arso.wallet.api.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.arso.wallet.api.adapter.rest.WalletHandlers;
 import org.arso.wallet.api.application.ApiErrors;
 import org.arso.wallet.api.application.Idempotency;
@@ -16,7 +17,12 @@ public class RestConfig {
 
     @Bean
     RouterFunction<ServerResponse> walletRoutes(
-            WalletCommands commands, WalletQueries queries, Idempotency idempotency, ApiErrors errors, JsonMapper mapper) {
-        return new WalletHandlers(commands, queries, idempotency, errors, mapper).routes();
+            WalletCommands commands,
+            WalletQueries queries,
+            Idempotency idempotency,
+            ApiErrors errors,
+            JsonMapper mapper,
+            MeterRegistry meters) {
+        return new WalletHandlers(commands, queries, idempotency, errors, mapper, meters).routes();
     }
 }

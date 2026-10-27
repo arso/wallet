@@ -10,6 +10,21 @@ spring:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
 management:
+  metrics:
+    tags:
+      service: ${spring.application.name}
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
   server:
     port: 8091
   endpoints:

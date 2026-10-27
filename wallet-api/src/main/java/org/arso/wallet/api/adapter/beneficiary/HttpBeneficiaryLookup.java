@@ -1,5 +1,6 @@
 package org.arso.wallet.api.adapter.beneficiary;
 
+import io.micrometer.observation.ObservationRegistry;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -22,10 +23,14 @@ public final class HttpBeneficiaryLookup implements BeneficiaryLookup {
     private final RestClient client;
     private final JsonMapper mapper;
 
-    public HttpBeneficiaryLookup(URI baseUrl, Duration timeout, JsonMapper mapper) {
+    public HttpBeneficiaryLookup(URI baseUrl, Duration timeout, JsonMapper mapper, ObservationRegistry observations) {
         var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(timeout).build());
         factory.setReadTimeout(timeout);
-        this.client = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
+        this.client = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(factory)
+                .observationRegistry(observations)
+                .build();
         this.mapper = mapper;
     }
 

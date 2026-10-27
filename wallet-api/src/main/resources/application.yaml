@@ -10,6 +10,18 @@ spring:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
   server:
     port: 8081
   endpoints:
@@ -22,7 +34,12 @@ management:
         enabled: true
       show-details: always
   metrics:
+    tags:
+      service: ${spring.application.name}
     distribution:
+      maximum-expected-value:
+        dynamodb_request: 10s
+        withdrawal_end_to_end: 2h
       percentiles-histogram:
         http.server.requests: true
 wallet:

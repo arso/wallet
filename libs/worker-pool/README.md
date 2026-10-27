@@ -65,4 +65,8 @@ Fix the bug, release the account (`POST /internal/accounts/{id}/release`), then 
 
 ## Metrics
 
-`accounts_held_total`, `unattributable_records_total`, `transient_retries_total`, `worker_permits_available`, `worker_oldest_uncommitted_offset_age_seconds`. Alert on any increase of the first two.
+`accounts_held_total`, `unattributable_records_total`, `transient_retries_total`, `worker_permits_available`, `worker_oldest_uncommitted_offset_age_seconds`, `worker_inflight` (records started or queued to a worker), `worker_queue_depth` (polled, not yet dispatched: waiting for their due time or for capacity), `worker_paused_partitions{reason}` (`not_due`, `backpressure`, `uncommitted_cap`, `circuit_open`; a partition can count under several), and `worker_record_seconds{topic}` (processing time per record, including retries). Alert on any increase of the first two.
+
+## Tracing
+
+With an `ObservationRegistry`, each record is processed in an observation that continues the trace from its `traceparent` header, and `AckedProducer` writes the current trace into the header of every record it sends.

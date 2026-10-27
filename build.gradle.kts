@@ -26,6 +26,7 @@ subprojects {
     tasks.withType<Test> {
         useJUnitPlatform()
         jvmArgs("-Xshare:off", "--enable-native-access=ALL-UNNAMED")
+        systemProperty("management.tracing.export.otlp.enabled", "false")
     }
 
     tasks.withType<JavaExec> { jvmArgs("--enable-native-access=ALL-UNNAMED") }

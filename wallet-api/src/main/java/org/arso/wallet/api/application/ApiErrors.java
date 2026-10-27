@@ -35,7 +35,7 @@ public final class ApiErrors {
     }
 
     public ApiResponse response(int status, String error, String message) {
-        return new ApiResponse(status, json.write(new ErrorView(error, message)));
+        return new ApiResponse(status, json.write(new ErrorView(error, message)), error);
     }
 
     private static int status(DomainException.Code code) {

@@ -4,7 +4,9 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.core.IntervalFunction;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.net.http.HttpClient;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.executor.adapter.kafka.TransferRequestHandler;
@@ -36,9 +38,9 @@ public class ExecutorConfig {
     }
 
     @Bean
-    CircuitBreaker transferCircuit(ExecutorProperties properties) {
+    CircuitBreaker transferCircuit(ExecutorProperties properties, MeterRegistry meters) {
         var circuit = properties.circuit();
-        return CircuitBreaker.of("transfer-service", CircuitBreakerConfig.custom()
+        var breaker = CircuitBreaker.of("transfer-service", CircuitBreakerConfig.custom()
                 .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
                 .slidingWindowSize(circuit.windowSize())
                 .minimumNumberOfCalls(circuit.minimumCalls())
@@ -48,10 +50,19 @@ public class ExecutorConfig {
                 .automaticTransitionFromOpenToHalfOpenEnabled(true)
                 .recordResult(result -> result instanceof TransferService.Result.Unknown)
                 .build());
+        Gauge.builder("circuit_breaker_state", breaker, c -> switch (c.getState()) {
+                    case CLOSED -> 0;
+                    case HALF_OPEN -> 1;
+                    default -> 2;
+                })
+                .tag("name", breaker.getName())
+                .register(meters);
+        return breaker;
     }
 
     @Bean
-    TransferService transferService(ExecutorProperties properties, CircuitBreaker circuit) {
+    TransferService transferService(
+            ExecutorProperties properties, CircuitBreaker circuit, ObservationRegistry observations) {
         var transfer = properties.transfer();
         var http = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
@@ -59,7 +70,11 @@ public class ExecutorConfig {
                 .build();
         var factory = new JdkClientHttpRequestFactory(http);
         factory.setReadTimeout(transfer.readTimeout());
-        var client = RestClient.builder().baseUrl(transfer.url().toString()).requestFactory(factory).build();
+        var client = RestClient.builder()
+                .baseUrl(transfer.url().toString())
+                .requestFactory(factory)
+                .observationRegistry(observations)
+                .build();
         return new ResilientTransferService(
                 new HttpTransferService(client),
                 circuit,
@@ -74,7 +89,12 @@ public class ExecutorConfig {
 
     @Bean(initMethod = "start", destroyMethod = "stop")
     WorkerPool executorPool(
-            Executor executor, AccountHolds holds, CircuitBreaker circuit, ExecutorProperties properties, MeterRegistry meters) {
+            Executor executor,
+            AccountHolds holds,
+            CircuitBreaker circuit,
+            ExecutorProperties properties,
+            MeterRegistry meters,
+            ObservationRegistry observations) {
         var kafka = properties.kafka();
         var workers = properties.workers();
         var settings = WorkerSettings.of(
@@ -88,7 +108,8 @@ public class ExecutorConfig {
                 new TransferRequestHandler(executor),
                 ErrorClassifier.defaults().withTransient(CallNotPermittedException.class),
                 holds,
-                meters);
+                meters,
+                observations);
         circuit.getEventPublisher().onStateTransition(
                 e -> pool.circuitOpen(e.getStateTransition().getToState() == CircuitBreaker.State.OPEN));
         return pool;

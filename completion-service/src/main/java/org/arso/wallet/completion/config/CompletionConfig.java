@@ -1,9 +1,11 @@
 package org.arso.wallet.completion.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.time.Clock;
 import java.util.Map;
 import org.arso.wallet.completion.adapter.kafka.KafkaTransferPublisher;
+import org.arso.wallet.completion.adapter.metrics.MicrometerCompletionMetrics;
 import org.arso.wallet.completion.adapter.kafka.VerificationResultHandler;
 import org.arso.wallet.completion.application.Completion;
 import org.arso.wallet.completion.port.TransferPublisher;
@@ -31,8 +33,8 @@ public class CompletionConfig {
     }
 
     @Bean(destroyMethod = "close")
-    AckedProducer ackedProducer(CompletionProperties properties) {
-        return new AckedProducer(properties.kafka().bootstrapServers(), Map.of());
+    AckedProducer ackedProducer(CompletionProperties properties, ObservationRegistry observations) {
+        return new AckedProducer(properties.kafka().bootstrapServers(), Map.of(), observations);
     }
 
     @Bean
@@ -42,12 +44,22 @@ public class CompletionConfig {
 
     @Bean
     Completion completion(
-            LedgerStore store, PaymentTransitions transitions, TransferPublisher publisher, CrashPoint crashPoint, Clock clock) {
-        return new Completion(store, transitions, publisher, crashPoint, clock);
+            LedgerStore store,
+            PaymentTransitions transitions,
+            TransferPublisher publisher,
+            CrashPoint crashPoint,
+            Clock clock,
+            MeterRegistry meters) {
+        return new Completion(store, transitions, publisher, crashPoint, clock, new MicrometerCompletionMetrics(meters));
     }
 
     @Bean(initMethod = "start", destroyMethod = "stop")
-    WorkerPool completionPool(Completion completion, AccountHolds holds, CompletionProperties properties, MeterRegistry meters) {
+    WorkerPool completionPool(
+            Completion completion,
+            AccountHolds holds,
+            CompletionProperties properties,
+            MeterRegistry meters,
+            ObservationRegistry observations) {
         var kafka = properties.kafka();
         var workers = properties.workers();
         var settings = WorkerSettings.of(
@@ -61,6 +73,7 @@ public class CompletionConfig {
                 new VerificationResultHandler(completion),
                 ErrorClassifier.defaults(),
                 holds,
-                meters);
+                meters,
+                observations);
     }
 }
