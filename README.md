@@ -21,9 +21,7 @@ Plan: [docs/implementation-plan.md](docs/implementation-plan.md).
 
 ## Run locally
 
-`docker compose up -d` starts DynamoDB Local, Kafka, Jaeger and Prometheus. Then `./gradlew :wallet-api:bootRun`.
-
-Bridge (local runner on the DynamoDB Local stream): `./gradlew :bridge:run`.
+`make up-all` starts DynamoDB Local, Kafka, Jaeger and Prometheus (`make up-deps`), builds the jars and starts every app in the background: wallet-api first (it creates the table), then the bridge (local runner on the DynamoDB Local stream), mocks, completion-service, transfer-executor and timeout-checker. Logs and pids in `.run/`. `make down-all` stops everything, `make help` lists the other targets (`status`, `logs-<app>`, `restart-apps`, `run-<app>` for one app in the foreground).
 
 Recover a consumer hold (after the fix and the release), from its `hold_ref = <topic>/<partition>/<offset>`:
 `./gradlew :libs:worker-pool:run --args="--topic <t> --partition <p> --offset <o>"`.
