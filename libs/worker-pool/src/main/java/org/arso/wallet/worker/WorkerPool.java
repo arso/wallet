@@ -2,10 +2,15 @@ package org.arso.wallet.worker;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.transport.ReceiverContext;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +60,10 @@ public final class WorkerPool implements Runnable {
     private final Semaphore permits;
     private final List<BlockingQueue<ConsumerRecord<String, byte[]>>> queues = new ArrayList<>();
     private final AtomicLong oldestOpenMillis = new AtomicLong();
+    private final AtomicLong inFlight = new AtomicLong();
+    private final AtomicLong queueDepth = new AtomicLong();
+    private final Map<Pause, AtomicLong> pausedPartitions = new EnumMap<>(Pause.class);
+    private final ObservationRegistry observations;
     private volatile boolean running = true;
     private Thread poller;
     private volatile boolean circuitOpen;
@@ -66,6 +75,19 @@ public final class WorkerPool implements Runnable {
             ErrorClassifier classifier,
             AccountHolds holds,
             MeterRegistry meters) {
+        this(consumerConfig, settings, handler, classifier, holds, meters, ObservationRegistry.NOOP);
+    }
+
+    /** Each record is processed in an observation that continues the trace from its {@code traceparent} header. */
+    public WorkerPool(
+            Map<String, Object> consumerConfig,
+            WorkerSettings settings,
+            RecordHandler handler,
+            ErrorClassifier classifier,
+            AccountHolds holds,
+            MeterRegistry meters,
+            ObservationRegistry observations) {
+        this.observations = observations;
         this.consumer = new KafkaConsumer<>(withDefaults(consumerConfig), new StringDeserializer(), new ByteArrayDeserializer());
         this.settings = settings;
         this.policy = new FailurePolicy(handler, classifier, holds, settings, meters);
@@ -84,6 +106,14 @@ public final class WorkerPool implements Runnable {
         Gauge.builder("worker_oldest_uncommitted_offset_age_seconds", oldestOpenMillis, v -> v.get() / 1000.0)
                 .tag("service", settings.service())
                 .register(meters);
+        Gauge.builder("worker_inflight", inFlight, AtomicLong::get).tag("service", settings.service()).register(meters);
+        Gauge.builder("worker_queue_depth", queueDepth, AtomicLong::get).tag("service", settings.service()).register(meters);
+        for (var reason : Pause.values()) {
+            var count = pausedPartitions.computeIfAbsent(reason, _ -> new AtomicLong());
+            Gauge.builder("worker_paused_partitions", count, AtomicLong::get)
+                    .tags("service", settings.service(), "reason", reason.name().toLowerCase())
+                    .register(meters);
+        }
     }
 
     public static Map<String, Object> consumerConfig(String bootstrapServers, String groupId, String instanceId) {
@@ -232,7 +262,12 @@ public final class WorkerPool implements Runnable {
             completions.add(new Completion(tp, record.offset(), false));
             return;
         }
-        var outcome = policy.run(record);
+        var outcome = Observation.createNotStarted("worker.record", () -> receiverContext(record), observations)
+                .contextualName(record.topic() + " process")
+                .lowCardinalityKeyValue("service", settings.service())
+                .lowCardinalityKeyValue("topic", record.topic())
+                .highCardinalityKeyValue("messaging.kafka.message.key", String.valueOf(record.key()))
+                .observe(() -> policy.run(record));
         switch (outcome) {
             case Outcome.Done _ -> completions.add(new Completion(tp, record.offset(), true));
             case Outcome.RecheckAt(var at) -> {
@@ -291,6 +326,19 @@ public final class WorkerPool implements Runnable {
     private void updateGauges() {
         var now = System.currentTimeMillis();
         oldestOpenMillis.set(partitions.values().stream().mapToLong(p -> p.oldestOpenSince(now)).max().orElse(0));
+        inFlight.set(partitions.values().stream().mapToLong(p -> p.inFlight).sum());
+        queueDepth.set(partitions.values().stream().mapToLong(p -> p.pending.size()).sum());
+        pausedPartitions.forEach((reason, count) ->
+                count.set(partitions.values().stream().filter(p -> p.reasons.contains(reason)).count()));
+    }
+
+    private static ReceiverContext<ConsumerRecord<String, byte[]>> receiverContext(ConsumerRecord<String, byte[]> record) {
+        var context = new ReceiverContext<ConsumerRecord<String, byte[]>>((carrier, key) -> {
+            var header = carrier.headers().lastHeader(key);
+            return header == null ? null : new String(header.value(), StandardCharsets.UTF_8);
+        });
+        context.setCarrier(record);
+        return context;
     }
 
     private Instant due(ConsumerRecord<String, byte[]> record) {

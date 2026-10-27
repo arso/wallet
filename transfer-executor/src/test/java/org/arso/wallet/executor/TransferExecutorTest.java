@@ -2,18 +2,21 @@ package org.arso.wallet.executor;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
 import static org.arso.wallet.ledger.application.CrashPoint.AFTER_TRANSFER;
+import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.arso.wallet.events.Events;
@@ -82,6 +87,9 @@ class TransferExecutorTest {
 
     @Autowired
     CircuitBreaker circuit;
+
+    @Autowired
+    MeterRegistry meters;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -276,6 +284,40 @@ class TransferExecutorTest {
         assertThat(circuit.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
     }
 
+    @Test
+    void traceContinuesFromTheRequestToTheTransferServiceCall() {
+        var payment = executing();
+        var traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+
+        send(payment, new RecordHeaders().add("traceparent", ("00-" + traceId + "-00f067aa0ba902b7-01").getBytes()));
+
+        awaitStatus(payment, PaymentStatus.COMPLETED);
+        var traced = TRANSFER_SERVICE.countRequestsMatching(postRequestedFor(urlEqualTo("/transfers"))
+                .withHeader("Idempotency-Key", equalTo(payment.id().value()))
+                .withHeader("traceparent", matching("00-" + traceId + "-.*"))
+                .build());
+        assertThat(traced.getCount()).isEqualTo(1);
+    }
+
+    @Test
+    void recordsMetricsWithoutIdsInLabels() {
+        var completed = executing();
+        var rejected = executing();
+        stub(rejected, aResponse().withStatus(HttpStatus.UNPROCESSABLE_CONTENT.value()));
+
+        send(completed);
+        send(rejected);
+
+        awaitStatus(completed, PaymentStatus.COMPLETED);
+        awaitStatus(rejected, PaymentStatus.REJECTED);
+        assertThat(meters.find("http.client.requests").tags("uri", "/transfers", "status", "422").timer()).isNotNull();
+        assertThat(meters.find("transfer").tag("outcome", "completed").timer()).isNotNull();
+        assertThat(meters.find("withdrawal_end_to_end").tags("outcome", "rejected", "reason", "execution_failed")
+                .timer()).isNotNull();
+        assertThat(meters.find("circuit_breaker_state").gauge()).isNotNull();
+        assertNoIdsInLabels(meters);
+    }
+
     static Payment executing() {
         var account = LEDGER.open();
         LEDGER.deposit(account, 100);
@@ -290,11 +332,16 @@ class TransferExecutorTest {
     }
 
     static long send(Payment payment) {
+        return send(payment, new RecordHeaders());
+    }
+
+    static long send(Payment payment, Headers headers) {
         var request = new TransferRequest(
                 Ulid.next(), Events.SCHEMA_VERSION, payment.id().value(), payment.accountId().value(),
                 payment.amount().amountMinor(), payment.amount().currency().code(), payment.beneficiaryId());
+        var value = EventJson.write(request);
         try {
-            return PRODUCER.send(new ProducerRecord<>(Events.TRANSFER_REQUESTS, payment.id().value(), EventJson.write(request)))
+            return PRODUCER.send(new ProducerRecord<>(Events.TRANSFER_REQUESTS, null, payment.id().value(), value, headers))
                     .get()
                     .offset();
         } catch (InterruptedException | ExecutionException e) {

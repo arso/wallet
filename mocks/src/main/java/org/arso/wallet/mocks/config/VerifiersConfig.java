@@ -1,6 +1,7 @@
 package org.arso.wallet.mocks.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +26,8 @@ import org.springframework.context.annotation.Configuration;
 public class VerifiersConfig {
 
     @Bean(destroyMethod = "close")
-    AckedProducer verifierProducer(MocksProperties properties) {
-        return new AckedProducer(properties.kafkaBootstrapServers(), Map.of());
+    AckedProducer verifierProducer(MocksProperties properties, ObservationRegistry observations) {
+        return new AckedProducer(properties.kafkaBootstrapServers(), Map.of(), observations);
     }
 
     @Bean
@@ -37,7 +38,8 @@ public class VerifiersConfig {
     }
 
     @Bean
-    SmartLifecycle verifierPools(Verifiers verifiers, MocksProperties properties, MeterRegistry meters) {
+    SmartLifecycle verifierPools(
+            Verifiers verifiers, MocksProperties properties, MeterRegistry meters, ObservationRegistry observations) {
         var config = properties.verifiers();
         var runners = config.steps().stream().map(step -> new PoolRunner(new WorkerPool(
                         WorkerPool.consumerConfig(properties.kafkaBootstrapServers(), "verifier-" + step, null),
@@ -47,7 +49,8 @@ public class VerifiersConfig {
                         new VerifierHandler(step, verifiers),
                         ErrorClassifier.defaults(),
                         PoolRunner.NO_HOLDS,
-                        meters)))
+                        meters,
+                        observations)))
                 .toList();
         return new Runners(runners);
     }

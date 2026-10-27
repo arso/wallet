@@ -1,6 +1,7 @@
 package org.arso.wallet.timeout.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.time.Clock;
 import java.util.Map;
 import org.arso.wallet.events.Events;
@@ -31,8 +32,8 @@ public class CheckerConfig {
     }
 
     @Bean(destroyMethod = "close")
-    AckedProducer ackedProducer(CheckerProperties properties) {
-        return new AckedProducer(properties.kafka().bootstrapServers(), Map.of());
+    AckedProducer ackedProducer(CheckerProperties properties, ObservationRegistry observations) {
+        return new AckedProducer(properties.kafka().bootstrapServers(), Map.of(), observations);
     }
 
     @Bean
@@ -53,7 +54,11 @@ public class CheckerConfig {
 
     @Bean(initMethod = "start", destroyMethod = "stop")
     public WorkerPool checkerPool(
-            TimeoutChecker checker, AccountHolds holds, CheckerProperties properties, MeterRegistry meters) {
+            TimeoutChecker checker,
+            AccountHolds holds,
+            CheckerProperties properties,
+            MeterRegistry meters,
+            ObservationRegistry observations) {
         var kafka = properties.kafka();
         var workers = properties.workers();
         var handler = new WithdrawRequestHandler(checker, properties.verificationTimeout());
@@ -69,6 +74,7 @@ public class CheckerConfig {
                 handler,
                 ErrorClassifier.defaults(),
                 holds,
-                meters);
+                meters,
+                observations);
     }
 }

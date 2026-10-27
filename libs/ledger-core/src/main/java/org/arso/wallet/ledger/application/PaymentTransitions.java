@@ -20,6 +20,7 @@ import org.arso.wallet.ledger.domain.RejectReason;
 import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict.AccountChanged;
 import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
+import org.arso.wallet.ledger.port.LedgerMetrics;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.ledger.port.TxItem.CheckAccountActive;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
@@ -31,11 +32,17 @@ public final class PaymentTransitions {
     private final LedgerStore store;
     private final Transactions transactions;
     private final Clock clock;
+    private final LedgerMetrics metrics;
 
     public PaymentTransitions(LedgerStore store, Transactions transactions, Clock clock) {
+        this(store, transactions, clock, LedgerMetrics.NONE);
+    }
+
+    public PaymentTransitions(LedgerStore store, Transactions transactions, Clock clock, LedgerMetrics metrics) {
         this.store = store;
         this.transactions = transactions;
         this.clock = clock;
+        this.metrics = metrics;
     }
 
     public Payment reject(PaymentId id, RejectReason reason, String verifier, Actor actor) {
@@ -47,14 +54,14 @@ public final class PaymentTransitions {
         if (payment.status() != expected) {
             return payment;
         }
-        return stopOnPaymentChange(() -> transactions.onAccount(payment.accountId(), account -> {
+        return stopOnPaymentChange(() -> finalized(transactions.onAccount(payment.accountId(), account -> {
             var now = now();
             var rejected = payment.reject(reason, now);
             var change = account.rejectWithdraw(payment.amount(), payment.id(), reason, verifier, actor, now);
             return new Plan<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new UpdatePayment(rejected, expected)),
                     rejected);
-        }));
+        })));
     }
 
     public Payment complete(PaymentId id, String externalTxId, Actor actor) {
@@ -62,14 +69,14 @@ public final class PaymentTransitions {
         if (payment.status() != EXECUTING) {
             return payment;
         }
-        return stopOnPaymentChange(() -> transactions.onAccount(payment.accountId(), account -> {
+        return stopOnPaymentChange(() -> finalized(transactions.onAccount(payment.accountId(), account -> {
             var now = now();
             var completed = payment.complete(externalTxId, now);
             var change = account.completeWithdraw(payment.id(), externalTxId, actor, now);
             return new Plan<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new UpdatePayment(completed, EXECUTING)),
                     completed);
-        }));
+        })));
     }
 
     public Payment needsReview(PaymentId id) {
@@ -80,7 +87,7 @@ public final class PaymentTransitions {
         var reviewed = payment.needsReview(now());
         return stopOnPaymentChange(() -> {
             transactions.commit(List.of(new UpdatePayment(reviewed, EXECUTING)));
-            return reviewed;
+            return finalized(reviewed);
         });
     }
 
@@ -93,6 +100,7 @@ public final class PaymentTransitions {
         try {
             transactions.commit(
                     List.of(new CheckAccountActive(payment.accountId()), new UpdatePayment(executing, PENDING, true)));
+            metrics.executing(executing);
             return executing;
         } catch (ConditionFailedException e) {
             return switch (e.conflict()) {
@@ -108,6 +116,11 @@ public final class PaymentTransitions {
     private Payment find(PaymentId id) {
         return store.findPayment(id)
                 .orElseThrow(() -> new DomainException(DomainException.Code.NOT_FOUND, "unknown payment " + id));
+    }
+
+    private Payment finalized(Payment payment) {
+        metrics.finalized(payment);
+        return payment;
     }
 
     private static Payment stopOnPaymentChange(Supplier<Payment> write) {

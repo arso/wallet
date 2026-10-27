@@ -2,6 +2,8 @@ package org.arso.wallet.api.adapter.rest;
 
 import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
 
+import io.micrometer.common.KeyValue;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.web.filter.ServerHttpObservationFilter;
+import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -41,14 +45,21 @@ public final class WalletHandlers {
     private final ApiErrors errors;
     private final JsonMapper mapper;
     private final JsonMapper canonical;
+    private final MeterRegistry meters;
 
     public WalletHandlers(
-            WalletCommands commands, WalletQueries queries, Idempotency idempotency, ApiErrors errors, JsonMapper mapper) {
+            WalletCommands commands,
+            WalletQueries queries,
+            Idempotency idempotency,
+            ApiErrors errors,
+            JsonMapper mapper,
+            MeterRegistry meters) {
         this.commands = commands;
         this.queries = queries;
         this.idempotency = idempotency;
         this.errors = errors;
         this.mapper = mapper;
+        this.meters = meters;
         this.canonical = mapper.rebuild().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
     }
 
@@ -127,7 +138,15 @@ public final class WalletHandlers {
         return send(req, known.orElseGet(() -> errors.response(HttpStatus.INTERNAL_SERVER_ERROR.value(), "internal_error", "unexpected error")));
     }
 
-    private static ServerResponse send(ServerRequest req, ApiResponse response) {
+    private ServerResponse send(ServerRequest req, ApiResponse response) {
+        if (response.error() != null) {
+            var route = req.attribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE).map(Object::toString).orElse("unknown");
+            meters.counter("api_errors_total", "route", route, "error", response.error()).increment();
+        }
+        if (response.body() != null && response.body().contains("\"payment_id\"")) {
+            ServerHttpObservationFilter.findObservationContext(req.servletRequest()).ifPresent(context -> context
+                    .addHighCardinalityKeyValue(KeyValue.of("payment.id", mapper.readTree(response.body()).path("payment_id").asString())));
+        }
         if (HttpStatusCode.valueOf(response.status()).isError()) {
             FAILED_REQUESTS.info("{} {} {} {}", req.method(), req.path(), response.status(), response.body());
         }

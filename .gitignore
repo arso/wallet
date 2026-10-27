@@ -6,3 +6,4 @@
 build
 .idea/
 kls_database.db
+.run

@@ -33,6 +33,7 @@ import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict.DepositExists;
 import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
 import org.arso.wallet.ledger.port.DepositRecord;
+import org.arso.wallet.ledger.port.LedgerMetrics;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.ledger.port.TxItem;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
@@ -51,6 +52,7 @@ public final class WalletCommands {
     private final JsonWriter json;
     private final Clock clock;
     private final Settings settings;
+    private final LedgerMetrics ledgerMetrics;
 
     public WalletCommands(
             LedgerStore store,
@@ -58,13 +60,15 @@ public final class WalletCommands {
             BeneficiaryLookup beneficiaries,
             JsonWriter json,
             Clock clock,
-            Settings settings) {
+            Settings settings,
+            LedgerMetrics ledgerMetrics) {
         this.store = store;
         this.transactions = transactions;
         this.beneficiaries = beneficiaries;
         this.json = json;
         this.clock = clock;
         this.settings = settings;
+        this.ledgerMetrics = ledgerMetrics;
     }
 
     public ApiResponse createAccount(Idem idem, Currency currency) {
@@ -109,15 +113,16 @@ public final class WalletCommands {
     public ApiResponse cancel(Idem idem, PaymentId id) {
         var payment = store.findPayment(id).orElseThrow(() -> new DomainException(NOT_FOUND, "unknown payment " + id));
         try {
-            return transactions.onAccount(payment.accountId(), account -> {
+            var cancelled = transactions.onAccount(payment.accountId(), account -> {
                 var now = now();
-                var cancelled = payment.cancel(now);
+                var next = payment.cancel(now);
                 var change = account.cancelWithdraw(payment.amount(), id, now);
-                var response = respond(HTTP_OK, Views.payment(cancelled));
+                var response = respond(HTTP_OK, Views.payment(next));
                 return new Plan<>(
-                        items(change, new UpdatePayment(cancelled, PaymentStatus.PENDING), idem.put(response, now)),
-                        response);
+                        items(change, new UpdatePayment(next, PaymentStatus.PENDING), idem.put(response, now)), next);
             });
+            ledgerMetrics.finalized(cancelled);
+            return respond(HTTP_OK, Views.payment(cancelled));
         } catch (ConditionFailedException e) {
             if (e.conflict() instanceof PaymentChanged) {
                 throw new DomainException(NOT_CANCELLABLE, "payment is no longer pending");

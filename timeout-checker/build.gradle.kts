@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":libs:worker-pool"))
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.opentelemetry)
     runtimeOnly(libs.micrometer.prometheus)
 
     testImplementation(libs.spring.boot.starter.test)

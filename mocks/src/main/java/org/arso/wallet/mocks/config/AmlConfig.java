@@ -1,6 +1,7 @@
 package org.arso.wallet.mocks.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.mocks.adapter.kafka.AmlHandler;
@@ -22,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 public class AmlConfig {
 
     @Bean
-    SmartLifecycle amlPool(MocksProperties properties, MeterRegistry meters) {
+    SmartLifecycle amlPool(MocksProperties properties, MeterRegistry meters, ObservationRegistry observations) {
         var config = properties.aml();
         var monitor = new AmlMonitor(new HttpWalletAdmin(config.walletUrl(), config.timeout()), config.blockThreshold());
         return new PoolRunner(new WorkerPool(
@@ -31,6 +32,7 @@ public class AmlConfig {
                 new AmlHandler(monitor),
                 ErrorClassifier.defaults().withTransient(WalletUnavailableException.class),
                 PoolRunner.NO_HOLDS,
-                meters));
+                meters,
+                observations));
     }
 }

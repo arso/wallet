@@ -3,6 +3,7 @@ package org.arso.wallet.completion;
 import static org.arso.wallet.ledger.application.CrashPoint.AFTER_EXECUTING;
 import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
 import static org.arso.wallet.ledger.application.CrashPoint.AFTER_STEP_WRITE;
+import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
@@ -22,6 +23,8 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.arso.wallet.completion.adapter.kafka.KafkaTransferPublisher;
@@ -38,11 +41,13 @@ import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.domain.PaymentStatus;
 import org.arso.wallet.ledger.domain.RejectReason;
 import org.arso.wallet.ledger.domain.Ulid;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.arso.wallet.testing.DynamoDbLocal;
 import org.arso.wallet.testing.KafkaLocal;
 import org.arso.wallet.testing.TestLedger;
 import org.arso.wallet.worker.AckedProducer;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -64,6 +69,9 @@ class CompletionServiceTest {
     static final Map<String, AtomicInteger> CRASHES = new ConcurrentHashMap<>();
     static final Map<PaymentId, Instant> PUBLISH_DOWN_UNTIL = new ConcurrentHashMap<>();
     static final List<PaymentId> PUBLISHED = new CopyOnWriteArrayList<>();
+
+    @Autowired
+    MeterRegistry meters;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -246,6 +254,37 @@ class CompletionServiceTest {
         assertThat(LEDGER.payment(next.id()).rejectReason()).isEqualTo(RejectReason.ACCOUNT_BLOCKED);
     }
 
+    @Test
+    void traceContinuesFromTheResultToTheTransferRequest() {
+        var payment = pending(List.of("aml"));
+        var traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+        var headers = new RecordHeaders().add("traceparent", ("00-" + traceId + "-00f067aa0ba902b7-01").getBytes());
+
+        result(payment, "aml", true, null, headers);
+
+        await(() -> published(payment) == 1);
+        var request = KafkaLocal.records(Events.TRANSFER_REQUESTS, payment.id().value()).getFirst();
+        assertThat(new String(request.headers().lastHeader("traceparent").value())).startsWith("00-" + traceId + "-");
+    }
+
+    @Test
+    void recordsMetricsWithoutIdsInLabels() {
+        var payment = pending(List.of("aml", "kyc"));
+        result(payment, "kyc", false, "no");
+        awaitStatus(payment, PaymentStatus.REJECTED);
+
+        result(payment, "aml", true, null);
+
+        await(() -> meters.find("late_verification_results_total").tag("step", "aml").counter() != null);
+        assertThat(meters.find("verification_step").tag("step", "kyc").timer()).isNotNull();
+        assertThat(meters.find("withdrawal_end_to_end").tags("outcome", "rejected", "reason", "verification_rejected")
+                .timer()).isNotNull();
+        assertThat(meters.find("dynamodb_request").tags("operation", "UpdateItem", "outcome", "ok").timer()).isNotNull();
+        assertThat(meters.find("worker_inflight").tag("service", "completion-service").gauge()).isNotNull();
+        assertThat(meters.find("worker_paused_partitions").tag("reason", "backpressure").gauge()).isNotNull();
+        assertNoIdsInLabels(meters);
+    }
+
     static Payment pending(List<String> steps) {
         AccountId id = LEDGER.open();
         LEDGER.deposit(id, 100);
@@ -253,9 +292,14 @@ class CompletionServiceTest {
     }
 
     static long result(Payment payment, String step, boolean allowed, String details) {
+        return result(payment, step, allowed, details, new RecordHeaders());
+    }
+
+    static long result(Payment payment, String step, boolean allowed, String details, Headers headers) {
         var result = new VerificationResult(Ulid.next(), 1, payment.id().value(), step, allowed, details, Instant.now());
+        var value = EventJson.write(result);
         try {
-            return PRODUCER.send(new ProducerRecord<>(Events.VERIFICATION_RESULTS, payment.id().value(), EventJson.write(result)))
+            return PRODUCER.send(new ProducerRecord<>(Events.VERIFICATION_RESULTS, null, payment.id().value(), value, headers))
                     .get()
                     .offset();
         } catch (InterruptedException | ExecutionException e) {

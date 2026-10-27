@@ -8,8 +8,10 @@ import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
 import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_REJECTED;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import org.arso.wallet.completion.port.CompletionMetrics;
 import org.arso.wallet.completion.port.TransferPublisher;
 import org.arso.wallet.events.VerificationResult;
 import org.arso.wallet.ledger.application.CrashPoint;
@@ -31,14 +33,21 @@ public final class Completion {
     private final TransferPublisher publisher;
     private final CrashPoint crash;
     private final Clock clock;
+    private final CompletionMetrics metrics;
 
     public Completion(
-            LedgerStore store, PaymentTransitions transitions, TransferPublisher publisher, CrashPoint crash, Clock clock) {
+            LedgerStore store,
+            PaymentTransitions transitions,
+            TransferPublisher publisher,
+            CrashPoint crash,
+            Clock clock,
+            CompletionMetrics metrics) {
         this.store = store;
         this.transitions = transitions;
         this.publisher = publisher;
         this.crash = crash;
         this.clock = clock;
+        this.metrics = metrics;
     }
 
     public void record(VerificationResult result) throws InterruptedException {
@@ -46,10 +55,19 @@ public final class Completion {
         var verification = new Verification(
                 result.allowed(), cut(result.details()), result.decidedAt(), clock.instant().truncatedTo(ChronoUnit.MILLIS), false);
         switch (store.recordVerification(id, result.step(), verification)) {
-            case StepWrite.Recorded(var payment) -> evaluateAfterWrite(payment);
+            case StepWrite.Recorded(var payment) -> {
+                var elapsed = Duration.between(payment.receivedAt(), result.decidedAt());
+                metrics.stepDecided(stepLabel(payment, result.step()), elapsed);
+                evaluateAfterWrite(payment);
+            }
             case StepWrite.Duplicate(var payment) -> evaluateAfterWrite(payment);
-            case StepWrite.Late _, StepWrite.NotFound _ -> {}
+            case StepWrite.Late(var payment) -> metrics.lateResult(stepLabel(payment, result.step()));
+            case StepWrite.NotFound _ -> {}
         }
+    }
+
+    private static String stepLabel(Payment payment, String step) {
+        return payment.requiredSteps().contains(step) ? step : "other";
     }
 
     private void evaluateAfterWrite(Payment payment) throws InterruptedException {

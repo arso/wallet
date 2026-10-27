@@ -7,6 +7,25 @@ spring:
     virtual:
       enabled: true
 management:
+  metrics:
+    tags:
+      service: ${spring.application.name}
+    distribution:
+      maximum-expected-value:
+        dynamodb_request: 10s
+        withdrawal_end_to_end: 2h
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
   server:
     port: 8087
   endpoints:

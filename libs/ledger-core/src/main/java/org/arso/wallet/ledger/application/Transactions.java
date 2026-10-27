@@ -12,6 +12,7 @@ import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict.AccountChanged;
+import org.arso.wallet.ledger.port.LedgerMetrics;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.ledger.port.TransientStoreException;
 import org.arso.wallet.ledger.port.TxItem;
@@ -29,10 +30,16 @@ public final class Transactions {
 
     private final LedgerStore store;
     private final RetryPolicy policy;
+    private final LedgerMetrics metrics;
 
     public Transactions(LedgerStore store, RetryPolicy policy) {
+        this(store, policy, LedgerMetrics.NONE);
+    }
+
+    public Transactions(LedgerStore store, RetryPolicy policy, LedgerMetrics metrics) {
         this.store = store;
         this.policy = policy;
+        this.metrics = metrics;
     }
 
     /**
@@ -58,6 +65,7 @@ public final class Transactions {
                 if (!(e.conflict() instanceof AccountChanged)) {
                     throw e;
                 }
+                metrics.lockRetry();
                 plan = null;
             } catch (TransientStoreException _) {
                 // same items, same token

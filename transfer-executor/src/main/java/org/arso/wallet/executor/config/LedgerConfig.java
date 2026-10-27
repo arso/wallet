@@ -1,13 +1,17 @@
 package org.arso.wallet.executor.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
+import org.arso.wallet.ledger.adapter.dynamodb.DynamoDbMetrics;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoDbClients;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
+import org.arso.wallet.ledger.adapter.metrics.MicrometerLedgerMetrics;
 import org.arso.wallet.ledger.application.PaymentTransitions;
 import org.arso.wallet.ledger.application.Transactions;
 import org.arso.wallet.ledger.port.AccountHolds;
+import org.arso.wallet.ledger.port.LedgerMetrics;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,9 +26,10 @@ public class LedgerConfig {
     }
 
     @Bean
-    DynamoDbClient dynamoDbClient(ExecutorProperties properties) {
+    DynamoDbClient dynamoDbClient(ExecutorProperties properties, MeterRegistry meters) {
         var config = properties.dynamodb();
-        return DynamoDbClients.create(config.endpoint(), config.region(), config.maxConnections());
+        return DynamoDbClients.create(
+                config.endpoint(), config.region(), config.maxConnections(), new DynamoDbMetrics(meters));
     }
 
     @Bean
@@ -33,10 +38,16 @@ public class LedgerConfig {
     }
 
     @Bean
-    PaymentTransitions paymentTransitions(LedgerStore store, ExecutorProperties properties, Clock clock) {
+    LedgerMetrics ledgerMetrics(MeterRegistry meters) {
+        return new MicrometerLedgerMetrics(meters);
+    }
+
+    @Bean
+    PaymentTransitions paymentTransitions(
+            LedgerStore store, ExecutorProperties properties, Clock clock, LedgerMetrics metrics) {
         var lock = properties.lock();
-        return new PaymentTransitions(
-                store, new Transactions(store, new Transactions.RetryPolicy(lock.maxAttempts(), lock.maxBackoff())), clock);
+        var retry = new Transactions.RetryPolicy(lock.maxAttempts(), lock.maxBackoff());
+        return new PaymentTransitions(store, new Transactions(store, retry, metrics), clock, metrics);
     }
 
     @Bean
