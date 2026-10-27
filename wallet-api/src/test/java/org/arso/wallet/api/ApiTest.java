@@ -1,40 +1,27 @@
 package org.arso.wallet.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import com.jayway.jsonpath.JsonPath;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.arso.wallet.testing.DynamoDbLocal;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.RestClient;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import org.springframework.test.web.servlet.client.RestTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient.BodyContentSpec;
+import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
 
 @SpringBootTest(classes = WalletApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 abstract class ApiTest {
 
-    record Resp(HttpStatus status, JsonNode body) {
-
-        String text(String field) {
-            return body.path(field).asString();
-        }
-
-        long number(String field) {
-            return body.path(field).asLong();
-        }
-    }
-
     @LocalServerPort
     int port;
 
-    @Autowired
-    JsonMapper mapper;
+    RestTestClient client;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -45,66 +32,79 @@ abstract class ApiTest {
         registry.add("wallet.lock.max-attempts", () -> "10");
     }
 
-    Resp post(String path, String key, String json) {
-        var request = client().post().uri(path).contentType(MediaType.APPLICATION_JSON);
+    @BeforeEach
+    void client() {
+        client = RestTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
+    }
+
+    ResponseSpec post(String path, String key, String json) {
+        var request = client.post().uri(path).contentType(MediaType.APPLICATION_JSON);
         if (key != null) {
             request.header("Idempotency-Key", key);
         }
-        if (json != null) {
-            request.body(json);
-        }
-        return request.exchange((_, response) -> read(response.getStatusCode(), response.bodyTo(String.class)));
+        return (json == null ? request : request.body(json)).exchange();
     }
 
-    Resp post(String path, String json) {
+    ResponseSpec post(String path, String json) {
         return post(path, UUID.randomUUID().toString(), json);
     }
 
-    Resp get(String path) {
-        return client().get().uri(path)
-                .exchange((_, response) -> read(response.getStatusCode(), response.bodyTo(String.class)));
+    ResponseSpec get(String path) {
+        return client.get().uri(path).exchange();
     }
 
     String createAccount() {
-        var created = post("/accounts", "{}");
-        assertThat(created.status()).isEqualTo(HttpStatus.CREATED);
-        return created.text("account_id");
+        return read(post("/accounts", "{}").expectStatus().isCreated(), "$.account_id");
     }
 
     String account(long balance) {
         var id = createAccount();
         if (balance > 0) {
-            assertThat(deposit(id, UUID.randomUUID().toString(), balance, "tx-" + UUID.randomUUID()).status())
-                    .isEqualTo(HttpStatus.CREATED);
+            deposit(id, UUID.randomUUID().toString(), balance, "tx-" + UUID.randomUUID()).expectStatus().isCreated();
         }
         return id;
     }
 
-    Resp deposit(String accountId, String key, long amount, String externalTxId) {
+    ResponseSpec deposit(String accountId, String key, long amount, String externalTxId) {
         return post("/accounts/" + accountId + "/deposits", key, """
                 {"amount":%d,"currency":"USD","external_tx_id":"%s",
                  "payer":{"payer_id":"p-1","name":"John","account_masked":"****1234",
                           "account_fingerprint":"hmac:1","country":"PL"}}""".formatted(amount, externalTxId));
     }
 
-    Resp withdraw(String accountId, String key, long amount) {
+    ResponseSpec withdraw(String accountId, String key, long amount) {
         return post("/accounts/" + accountId + "/withdrawals", key, """
                 {"amount":%d,"currency":"USD","beneficiary_id":"b-1"}""".formatted(amount));
     }
 
+    String pendingWithdrawal(String accountId, long amount) {
+        return read(withdraw(accountId, UUID.randomUUID().toString(), amount).expectStatus().isAccepted(), "$.payment_id");
+    }
+
     long balance(String accountId) {
-        return get("/accounts/" + accountId).number("balance");
+        return ApiTest.<Number>read(get("/accounts/" + accountId).expectStatus().isOk(), "$.balance").longValue();
     }
 
     String status(String accountId) {
-        return get("/accounts/" + accountId).text("status");
+        return read(get("/accounts/" + accountId).expectStatus().isOk(), "$.status");
     }
 
-    private RestClient client() {
-        return RestClient.create("http://localhost:" + port);
+    static <T> T read(ResponseSpec response, String path) {
+        return JsonPath.read(response.returnResult(String.class).getResponseBody(), path);
     }
 
-    private Resp read(HttpStatusCode status, String body) {
-        return new Resp(HttpStatus.valueOf(status.value()), body == null || body.isEmpty() ? mapper.createObjectNode() : mapper.readTree(body));
+    static <T> T read(BodyContentSpec body, String path) {
+        return JsonPath.read(new String(body.returnResult().getResponseBody(), StandardCharsets.UTF_8), path);
+    }
+
+    static void assertError(ResponseSpec response, HttpStatus status, String error) {
+        response.expectStatus().isEqualTo(status)
+                .expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .expectBody()
+                .jsonPath("$.error").isEqualTo(error)
+                .jsonPath("$.type").isEqualTo("about:blank")
+                .jsonPath("$.status").isEqualTo(status.value())
+                .jsonPath("$.title").isEqualTo(status.getReasonPhrase())
+                .jsonPath("$.detail").exists();
     }
 }

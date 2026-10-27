@@ -1,6 +1,7 @@
 package org.arso.wallet.mocks;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
@@ -32,13 +33,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
 
 @SpringBootTest(classes = MocksApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class MocksTest {
@@ -66,29 +66,40 @@ class MocksTest {
 
     @Test
     void beneficiaryIsStableAndMissingIdsAreNotFound() {
-        var first = client(Duration.ofSeconds(5)).get().uri("/beneficiaries/b-1").retrieve().body(String.class);
+        var first = client(Duration.ofSeconds(5)).get().uri("/beneficiaries/b-1").exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.beneficiary_id").isEqualTo("b-1")
+                .jsonPath("$.account_masked").value(String.class, v -> assertThat(v).startsWith("****"))
+                .jsonPath("$.country").isEqualTo("DE")
+                .returnResult().getResponseBody();
 
-        assertThat(first).contains("\"beneficiary_id\":\"b-1\"", "\"account_masked\":\"****", "\"country\":\"DE\"");
-        assertThat(client(Duration.ofSeconds(5)).get().uri("/beneficiaries/b-1").retrieve().body(String.class))
-                .isEqualTo(first);
-        assertThat(status(client(Duration.ofSeconds(5)).get().uri("/beneficiaries/missing-1"))).isEqualTo(HttpStatus.NOT_FOUND);
+        client(Duration.ofSeconds(5)).get().uri("/beneficiaries/b-1").exchange()
+                .expectStatus().isOk()
+                .expectBody(byte[].class).isEqualTo(first);
+        client(Duration.ofSeconds(5)).get().uri("/beneficiaries/missing-1").exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test
     void transferIsIdempotentAndHasThreeModes() {
         var key = UUID.randomUUID().toString();
-        var ok = transfer(key, "b-1", Duration.ofSeconds(5));
-        assertThat(ok).contains("\"external_tx_id\":\"ts-");
-        assertThat(transfer(key, "b-1", Duration.ofSeconds(5))).isEqualTo(ok);
+        var sent = transfer(key, "b-1", Duration.ofSeconds(5))
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.external_tx_id").value(String.class, v -> assertThat(v).startsWith("ts-"))
+                .returnResult().getResponseBody();
+        transfer(key, "b-1", Duration.ofSeconds(5))
+                .expectStatus().isOk()
+                .expectBody(byte[].class).isEqualTo(sent);
 
-        assertThat(transfer(UUID.randomUUID().toString(), "b-reject-1", Duration.ofSeconds(5))).contains("transfer_rejected");
+        transfer(UUID.randomUUID().toString(), "b-reject-1", Duration.ofSeconds(5))
+                .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
+                .expectBody()
+                .jsonPath("$.error").isEqualTo("transfer_rejected");
 
-        try {
-            transfer(UUID.randomUUID().toString(), "b-timeout-1", Duration.ofMillis(300));
-            throw new AssertionError("expected a timeout");
-        } catch (ResourceAccessException e) {
-            assertThat(e).hasRootCauseInstanceOf(HttpTimeoutException.class);
-        }
+        assertThatThrownBy(() -> transfer(UUID.randomUUID().toString(), "b-timeout-1", Duration.ofMillis(300)))
+                .hasRootCauseInstanceOf(HttpTimeoutException.class);
     }
 
     @Test
@@ -187,24 +198,20 @@ class MocksTest {
         }
     }
 
-    String transfer(String key, String beneficiaryId, Duration timeout) {
+    ResponseSpec transfer(String key, String beneficiaryId, Duration timeout) {
         var body = "{\"payment_id\":\"%s\",\"account_id\":\"a\",\"amount\":100,\"currency\":\"USD\",\"beneficiary_id\":\"%s\"}"
                 .formatted(key, beneficiaryId);
         return client(timeout).post().uri("/transfers")
                 .header("Idempotency-Key", key)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
-                .exchange((_, response) -> response.bodyTo(String.class));
+                .exchange();
     }
 
-    RestClient client(Duration timeout) {
+    RestTestClient client(Duration timeout) {
         var factory = new JdkClientHttpRequestFactory();
         factory.setReadTimeout(timeout);
-        return RestClient.builder().baseUrl("http://localhost:" + port).requestFactory(factory).build();
-    }
-
-    static HttpStatusCode status(RestClient.RequestHeadersSpec<?> request) {
-        return request.exchange((_, response) -> response.getStatusCode());
+        return RestTestClient.bindToServer(factory).baseUrl("http://localhost:" + port).build();
     }
 
     static void await(BooleanSupplier condition) {
