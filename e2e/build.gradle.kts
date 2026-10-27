@@ -11,6 +11,7 @@ tasks.test { enabled = false }
 tasks.register<Test>("e2eTest") {
     description = "Runs the end-to-end tests on the full stack in Docker."
     group = "verification"
+    outputs.upToDateWhen { false }
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
     val prebuilt = providers.environmentVariable("E2E_PREBUILT_IMAGES").isPresent
