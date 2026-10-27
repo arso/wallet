@@ -34,7 +34,8 @@ public class VerifiersConfig {
     Verifiers verifiers(AckedProducer verifierProducer, MocksProperties properties) {
         var config = properties.verifiers();
         return new Verifiers(
-                new KafkaResultPublisher(verifierProducer), config.minLatency(), config.maxLatency(), Clock.systemUTC());
+                new KafkaResultPublisher(verifierProducer), config.minLatency(), config.maxLatency(), config.slowLatency(),
+                Clock.systemUTC());
     }
 
     @Bean

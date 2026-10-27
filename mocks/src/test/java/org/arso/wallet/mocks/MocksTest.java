@@ -1,6 +1,7 @@
 package org.arso.wallet.mocks;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
@@ -60,7 +61,8 @@ class MocksTest {
         registry.add("mocks.verifiers.max-latency", () -> "50ms");
         registry.add("mocks.aml.wallet-url", () -> WalletStub.url().toString());
         registry.add("mocks.aml.block-threshold", () -> "5000");
-        registry.add("mocks.transfer.timeout-delay", () -> "2s");
+        registry.add("mocks.verifiers.slow-latency", () -> "1s");
+        registry.add("mocks.transfer.delay", () -> "2s");
     }
 
     @Test
@@ -74,7 +76,7 @@ class MocksTest {
     }
 
     @Test
-    void transferIsIdempotentAndHasThreeModes() {
+    void transferIsIdempotentAndHasFourModes() {
         var key = UUID.randomUUID().toString();
         var ok = transfer(key, "b-1", Duration.ofSeconds(5));
         assertThat(ok).contains("\"external_tx_id\":\"ts-");
@@ -88,6 +90,13 @@ class MocksTest {
         } catch (ResourceAccessException e) {
             assertThat(e).hasRootCauseInstanceOf(HttpTimeoutException.class);
         }
+
+        var slow = UUID.randomUUID().toString();
+        assertThatThrownBy(() -> transfer(slow, "b-slow-1", Duration.ofMillis(300))).isInstanceOf(ResourceAccessException.class);
+        var resent = transfer(slow, "b-slow-1", Duration.ofMillis(300));
+        assertThat(resent).contains("\"external_tx_id\":\"ts-");
+        assertThat(client(Duration.ofSeconds(5)).get().uri("/transfers/" + slow).retrieve().body(String.class))
+                .isEqualTo("{\"attempts\":2," + resent.substring(1));
     }
 
     @Test
@@ -95,8 +104,9 @@ class MocksTest {
         var allowed = withdrawRequest("b-1");
         var denied = withdrawRequest("b-deny-kyc");
         var silent = withdrawRequest("b-silent-aml");
+        var slow = withdrawRequest("b-slow-aml");
 
-        var results = readResults(List.of(allowed.paymentId(), denied.paymentId(), silent.paymentId()), 5);
+        var results = readResults(List.of(allowed.paymentId(), denied.paymentId(), silent.paymentId(), slow.paymentId()), 7);
 
         assertThat(results).filteredOn(r -> r.paymentId().equals(allowed.paymentId()))
                 .extracting(r -> r.step() + "=" + r.allowed())
@@ -107,6 +117,9 @@ class MocksTest {
         assertThat(results).filteredOn(r -> r.paymentId().equals(silent.paymentId()))
                 .extracting(r -> r.step() + "=" + r.allowed())
                 .containsExactly("kyc=true");
+        assertThat(results).filteredOn(r -> r.paymentId().equals(slow.paymentId()))
+                .extracting(VerificationResult::step)
+                .containsExactly("kyc", "aml");
     }
 
     @Test

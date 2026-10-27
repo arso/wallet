@@ -13,6 +13,6 @@ public class HttpMocksConfig {
 
     @Bean
     RouterFunction<ServerResponse> mockRoutes(MocksProperties properties) {
-        return new MockHandlers(new BeneficiaryDirectory(), new TransferDesk(properties.transfer().timeoutDelay())).routes();
+        return new MockHandlers(new BeneficiaryDirectory(), new TransferDesk(properties.transfer().delay())).routes();
     }
 }

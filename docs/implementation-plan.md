@@ -792,7 +792,7 @@ Each phase ends with passing tests.
 - Spec ref: 15.4.
 
 ### Phase 11 - End-to-end tests
-- Every scenario from spec 13 on the full stack (Testcontainers), with short timeouts from config.
+- Spec 13 scenarios that cross services on the full stack (Testcontainers), with short timeouts from config. Scenarios inside one service stay in its module tests, which already run against DynamoDB Local and Kafka.
 - Invariant checks from spec 12 after each scenario, plus: exactly one final state per payment, checked on `PAYMENT#` (not by counting events); `NEEDS_REVIEW` has no ledger entry and no refund; sum of ledger entries equals the account balance.
 - Spec ref: 12, 13.
 

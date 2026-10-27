@@ -11,7 +11,7 @@ Use freely:
 - Jackson 3
 - Resilience4j
 - Micrometer + Prometheus, Micrometer Tracing + OpenTelemetry
-- JUnit 5, AssertJ, ArchUnit, Testcontainers (DynamoDB Local, Kafka), WireMock
+- JUnit 5, AssertJ, Awaitility, ArchUnit, Testcontainers (DynamoDB Local, Kafka), WireMock
 
 Do not use:
 

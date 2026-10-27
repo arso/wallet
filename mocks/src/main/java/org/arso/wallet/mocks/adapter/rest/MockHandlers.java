@@ -1,5 +1,6 @@
 package org.arso.wallet.mocks.adapter.rest;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.arso.wallet.mocks.application.BeneficiaryDirectory;
 import org.arso.wallet.mocks.application.TransferDesk;
@@ -26,6 +27,7 @@ public final class MockHandlers {
         return RouterFunctions.route()
                 .GET("/beneficiaries/{id}", this::beneficiary)
                 .POST("/transfers", this::transfer)
+                .GET("/transfers/{key}", this::attempts)
                 .build();
     }
 
@@ -45,6 +47,16 @@ public final class MockHandlers {
             case TransferDesk.Result.Sent(var externalTxId) -> json(HttpStatus.OK, Map.of("external_tx_id", externalTxId));
             case TransferDesk.Result.Rejected(var reason) -> json(HttpStatus.UNPROCESSABLE_CONTENT, Map.of("error", "transfer_rejected", "message", reason));
         };
+    }
+
+    private ServerResponse attempts(ServerRequest req) {
+        var key = req.pathVariable("key");
+        var body = new LinkedHashMap<String, Object>();
+        body.put("attempts", transfers.attempts(key));
+        if (transfers.result(key) instanceof TransferDesk.Result.Sent(var externalTxId)) {
+            body.put("external_tx_id", externalTxId);
+        }
+        return json(HttpStatus.OK, body);
     }
 
     private static ServerResponse json(HttpStatus status, Object body) {

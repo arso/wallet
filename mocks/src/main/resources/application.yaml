@@ -38,6 +38,7 @@ mocks:
     steps: aml, account_verified, beneficiary_credibility
     min-latency: 100ms
     max-latency: 2s
+    slow-latency: 5s
     max-in-flight: 256
   aml:
     enabled: true
@@ -45,4 +46,4 @@ mocks:
     timeout: 2s
     block-threshold: 1000000
   transfer:
-    timeout-delay: 30s
+    delay: 30s

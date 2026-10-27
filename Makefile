@@ -5,16 +5,19 @@ APPS := wallet-api bridge mocks completion-service transfer-executor timeout-che
 JAR = $(1)/build/libs/$(1)-0.0.1-SNAPSHOT.jar
 
 .DEFAULT_GOAL := help
-.PHONY: help build test jars up-deps down-deps clean-deps up-all down-all start-apps stop-apps restart-apps status logs
+.PHONY: help build test e2e jars up-deps down-deps clean-deps up-all down-all start-apps stop-apps restart-apps status logs
 
 help: ## List targets
 	@grep -E '^[a-zA-Z%_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-18s %s\n", $$1, $$2}'
 
-build: ## Build and run all tests (needs Docker)
+build: ## Build and run all tests except e2e (needs Docker)
 	$(GRADLE) build
 
-test: ## Run all tests (needs Docker)
+test: ## Run all tests except e2e (needs Docker)
 	$(GRADLE) test
+
+e2e: ## Run the end-to-end tests on the full stack in Docker (slow)
+	$(GRADLE) :e2e:e2eTest
 
 jars: ## Build runnable app jars, no tests
 	$(GRADLE) bootJar :bridge:installDist -x test

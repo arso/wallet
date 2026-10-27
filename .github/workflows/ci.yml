@@ -75,14 +75,82 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.service }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            wallet-e2e-${{ matrix.service }}:latest
           labels: ${{ steps.meta.outputs.labels }}
           push: false
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+          path: ${{ runner.temp }}/image.tar
+          retention-days: 1
+
+  e2e:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: ${{ runner.temp }}/images
+
+      - name: Load images
+        run: for f in ${{ runner.temp }}/images/*/image.tar; do docker load -i "$f"; done
+
+      - name: End-to-end tests
+        env:
+          E2E_PREBUILT_IMAGES: 'true'
+        run: sh ./gradlew :e2e:e2eTest
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-reports
+          path: e2e/build/reports/tests/
+
+  publish:
+    needs: e2e
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [wallet-api, mocks, completion-service, transfer-executor, timeout-checker]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+          path: ${{ runner.temp }}
+
+      - name: Load image
+        run: docker load -i ${{ runner.temp }}/image.tar
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/wallet-${{ matrix.service }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
       - name: Publish (dummy)
-        if: github.event_name == 'push'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: echo "would push $TAGS"
