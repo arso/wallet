@@ -8,9 +8,9 @@ import org.arso.wallet.ledger.domain.Currency;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.Money;
 
-final class Bodies {
+final class RequestBodies {
 
-    private Bodies() {}
+    private RequestBodies() {}
 
     record CreateAccount(String currency) {
 

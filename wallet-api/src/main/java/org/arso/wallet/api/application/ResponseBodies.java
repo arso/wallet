@@ -18,16 +18,16 @@ import org.arso.wallet.ledger.domain.LedgerEntry.Withdrawn;
 import org.arso.wallet.ledger.domain.Money;
 import org.arso.wallet.ledger.domain.Payment;
 
-public final class Views {
+public final class ResponseBodies {
 
-    private Views() {}
+    private ResponseBodies() {}
 
-    public record AccountView(String accountId, long balance, String currency, String status, long version) {}
+    public record AccountBody(String accountId, long balance, String currency, String status, long version) {}
 
-    public record DepositView(
+    public record DepositBody(
             String accountId, long seq, long amount, String currency, long balanceAfter, String externalTxId) {}
 
-    public record PaymentView(
+    public record PaymentBody(
             String paymentId,
             String accountId,
             long amount,
@@ -40,21 +40,21 @@ public final class Views {
             String rejectReason,
             String externalTxId,
             List<String> requiredSteps,
-            Map<String, VerificationView> verifications) {}
+            Map<String, VerificationBody> verifications) {}
 
-    public record VerificationView(boolean allowed, String details, String decidedAt, String recordedAt, Boolean late) {}
+    public record VerificationBody(boolean allowed, String details, String decidedAt, String recordedAt, Boolean late) {}
 
     public record LedgerPage(List<Map<String, Object>> entries, Long nextBeforeSeq) {}
 
-    public record ProblemView(String type, String title, int status, String detail, String error) {}
+    public record ProblemBody(String type, String title, int status, String detail, String error) {}
 
-    static AccountView account(Account a) {
-        return new AccountView(
+    static AccountBody account(Account a) {
+        return new AccountBody(
                 a.id().value(), a.balance().amountMinor(), a.balance().currency().code(), a.status().name(), a.version());
     }
 
-    static DepositView deposit(Deposited d) {
-        return new DepositView(
+    static DepositBody deposit(Deposited d) {
+        return new DepositBody(
                 d.meta().accountId().value(),
                 d.meta().seq(),
                 d.amount().amountMinor(),
@@ -63,11 +63,11 @@ public final class Views {
                 d.externalTxId());
     }
 
-    static PaymentView payment(Payment p) {
-        var verifications = new LinkedHashMap<String, VerificationView>();
-        p.verifications().forEach((step, v) -> verifications.put(step, new VerificationView(
+    static PaymentBody payment(Payment p) {
+        var verifications = new LinkedHashMap<String, VerificationBody>();
+        p.verifications().forEach((step, v) -> verifications.put(step, new VerificationBody(
                 v.allowed(), v.details(), format(v.decidedAt()), format(v.recordedAt()), v.late() ? true : null)));
-        return new PaymentView(
+        return new PaymentBody(
                 p.id().value(),
                 p.accountId().value(),
                 p.amount().amountMinor(),
@@ -85,7 +85,7 @@ public final class Views {
 
     static LedgerPage ledger(List<LedgerEntry> entries, int limit) {
         var next = entries.size() == limit && entries.getLast().meta().seq() > 1 ? entries.getLast().meta().seq() : null;
-        return new LedgerPage(entries.stream().map(Views::entry).toList(), next);
+        return new LedgerPage(entries.stream().map(ResponseBodies::entry).toList(), next);
     }
 
     static Map<String, Object> entry(LedgerEntry e) {

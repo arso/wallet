@@ -74,7 +74,7 @@ public final class WalletCommands {
     public ApiResponse createAccount(Idem idem, Currency currency) {
         var now = now();
         var opened = Account.open(AccountId.random(), currency == null ? settings.defaultCurrency() : currency, now);
-        var response = respond(HTTP_CREATED, Views.account(opened.account()));
+        var response = respond(HTTP_CREATED, ResponseBodies.account(opened.account()));
         transactions.commit(items(opened, idem.put(response, now)));
         return response;
     }
@@ -84,7 +84,7 @@ public final class WalletCommands {
             return transactions.onAccount(id, account -> {
                 var now = now();
                 var change = account.deposit(amount, externalTxId, payer, now);
-                var response = respond(HTTP_CREATED, Views.deposit((Deposited) change.entry()));
+                var response = respond(HTTP_CREATED, ResponseBodies.deposit((Deposited) change.entry()));
                 var dedup = new PutDeposit(new DepositRecord(externalTxId, id, change.entry().meta().seq()), now);
                 return new Writes<>(items(change, dedup, idem.put(response, now)), response);
             });
@@ -105,7 +105,7 @@ public final class WalletCommands {
             var paymentId = PaymentId.random();
             var change = account.withdraw(amount, paymentId, beneficiary, now);
             var payment = Payment.create(paymentId, id, amount, beneficiaryId, settings.verificationSteps(), receivedAt);
-            var response = respond(HTTP_ACCEPTED, Views.payment(payment));
+            var response = respond(HTTP_ACCEPTED, ResponseBodies.payment(payment));
             return new Writes<>(items(change, new PutPayment(payment), idem.put(response, now)), response);
         });
     }
@@ -117,12 +117,12 @@ public final class WalletCommands {
                 var now = now();
                 var next = payment.cancel(now);
                 var change = account.cancelWithdraw(payment.amount(), id, now);
-                var response = respond(HTTP_OK, Views.payment(next));
+                var response = respond(HTTP_OK, ResponseBodies.payment(next));
                 return new Writes<>(
                         items(change, new UpdatePayment(next, PaymentStatus.PENDING), idem.put(response, now)), next);
             });
             ledgerMetrics.finalized(cancelled);
-            return respond(HTTP_OK, Views.payment(cancelled));
+            return respond(HTTP_OK, ResponseBodies.payment(cancelled));
         } catch (ConditionFailedException e) {
             if (e.conflict() instanceof PaymentChanged) {
                 throw new DomainException(NOT_CANCELLABLE, "payment is no longer pending");
@@ -147,7 +147,7 @@ public final class WalletCommands {
         return transactions.onAccount(id, account -> {
             var now = now();
             var change = action.apply(account, now);
-            var response = respond(HTTP_OK, Views.account(change.account()));
+            var response = respond(HTTP_OK, ResponseBodies.account(change.account()));
             return new Writes<>(items(change, idem.put(response, now)), response);
         });
     }
@@ -157,7 +157,7 @@ public final class WalletCommands {
             throw new DomainException(DUPLICATE_DEPOSIT, "external_tx_id already used on another account");
         }
         var entry = (Deposited) store.findEntry(id, original.seq()).orElseThrow();
-        var response = respond(HTTP_CREATED, Views.deposit(entry));
+        var response = respond(HTTP_CREATED, ResponseBodies.deposit(entry));
         store.storeResponse(idem.key(), idem.stored(response), now());
         return response;
     }

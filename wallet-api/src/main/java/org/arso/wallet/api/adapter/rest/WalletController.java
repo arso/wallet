@@ -71,39 +71,39 @@ public class WalletController {
 
     @PostMapping("/accounts")
     ResponseEntity<String> createAccount(HttpServletRequest req) throws Exception {
-        return post(req, Bodies.CreateAccount.class, (idem, b) -> commands.createAccount(idem, b.toCurrency()));
+        return post(req, RequestBodies.CreateAccount.class, (idem, b) -> commands.createAccount(idem, b.toCurrency()));
     }
 
     @PostMapping("/accounts/{id}/deposits")
     ResponseEntity<String> deposit(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, Bodies.Deposit.class, (idem, b) -> commands.deposit(
-                idem, new AccountId(id), Bodies.money(b.amount(), b.currency()), b.externalTxId(), b.toPayer()));
+        return post(req, RequestBodies.Deposit.class, (idem, b) -> commands.deposit(
+                idem, new AccountId(id), RequestBodies.money(b.amount(), b.currency()), b.externalTxId(), b.toPayer()));
     }
 
     @PostMapping("/accounts/{id}/withdrawals")
     ResponseEntity<String> withdraw(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, Bodies.Withdraw.class, (idem, b) -> commands.withdraw(
-                idem, new AccountId(id), Bodies.money(b.amount(), b.currency()), b.requireBeneficiary()));
+        return post(req, RequestBodies.Withdraw.class, (idem, b) -> commands.withdraw(
+                idem, new AccountId(id), RequestBodies.money(b.amount(), b.currency()), b.requireBeneficiary()));
     }
 
     @PostMapping("/payments/{id}/cancel")
     ResponseEntity<String> cancel(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, Bodies.Reason.class, (idem, _) -> commands.cancel(idem, new PaymentId(id)));
+        return post(req, RequestBodies.Reason.class, (idem, _) -> commands.cancel(idem, new PaymentId(id)));
     }
 
     @PostMapping("/internal/accounts/{id}/block")
     ResponseEntity<String> block(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, Bodies.Reason.class, (idem, b) -> commands.block(idem, new AccountId(id), b.reason()));
+        return post(req, RequestBodies.Reason.class, (idem, b) -> commands.block(idem, new AccountId(id), b.reason()));
     }
 
     @PostMapping("/internal/accounts/{id}/unblock")
     ResponseEntity<String> unblock(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, Bodies.Reason.class, (idem, b) -> commands.unblock(idem, new AccountId(id), b.reason()));
+        return post(req, RequestBodies.Reason.class, (idem, b) -> commands.unblock(idem, new AccountId(id), b.reason()));
     }
 
     @PostMapping("/internal/accounts/{id}/release")
     ResponseEntity<String> release(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, Bodies.Release.class, (idem, b) -> commands.release(
+        return post(req, RequestBodies.Release.class, (idem, b) -> commands.release(
                 idem, new AccountId(id), b.target(), Boolean.TRUE.equals(b.confirm()), b.reason()));
     }
 

@@ -3,9 +3,9 @@ package org.arso.wallet.api.application;
 import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
 import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_FOUND;
 
-import org.arso.wallet.api.application.Views.AccountView;
-import org.arso.wallet.api.application.Views.LedgerPage;
-import org.arso.wallet.api.application.Views.PaymentView;
+import org.arso.wallet.api.application.ResponseBodies.AccountBody;
+import org.arso.wallet.api.application.ResponseBodies.LedgerPage;
+import org.arso.wallet.api.application.ResponseBodies.PaymentBody;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.PaymentId;
@@ -21,12 +21,12 @@ public final class WalletQueries {
         this.store = store;
     }
 
-    public AccountView account(AccountId id) {
-        return Views.account(store.findAccount(id).orElseThrow(() -> notFound("account", id)));
+    public AccountBody account(AccountId id) {
+        return ResponseBodies.account(store.findAccount(id).orElseThrow(() -> notFound("account", id)));
     }
 
-    public PaymentView payment(PaymentId id) {
-        return Views.payment(store.findPayment(id).orElseThrow(() -> notFound("payment", id)));
+    public PaymentBody payment(PaymentId id) {
+        return ResponseBodies.payment(store.findPayment(id).orElseThrow(() -> notFound("payment", id)));
     }
 
     public LedgerPage ledger(AccountId id, Long beforeSeq, int limit) {
@@ -37,7 +37,7 @@ public final class WalletQueries {
         if (entries.isEmpty() && beforeSeq == null) {
             throw notFound("account", id);
         }
-        return Views.ledger(entries, limit);
+        return ResponseBodies.ledger(entries, limit);
     }
 
     private static DomainException notFound(String what, Object id) {
