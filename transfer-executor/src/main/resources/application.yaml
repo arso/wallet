@@ -37,6 +37,9 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        liveness:
+          include: livenessState, workerPool
 executor:
   dynamodb:
     table-name: wallet-local

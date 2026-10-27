@@ -19,7 +19,7 @@ class MetricsTest extends ApiTest {
         var id = account(0);
         deposit(id, UUID.randomUUID().toString(), 100, "tx-m-" + id);
         deposit(id, UUID.randomUUID().toString(), 100, "tx-m-" + id);
-        var paymentId = withdraw(id, UUID.randomUUID().toString(), 30).text("payment_id");
+        var paymentId = pendingWithdrawal(id, 30);
         withdraw(id, UUID.randomUUID().toString(), 1000);
         post("/payments/" + paymentId + "/cancel", null);
         post("/internal/accounts/" + id + "/block", "{\"reason\":\"aml\"}");

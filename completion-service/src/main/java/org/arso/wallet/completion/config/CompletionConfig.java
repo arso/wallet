@@ -21,6 +21,8 @@ import org.arso.wallet.worker.WorkerPool;
 import org.arso.wallet.worker.WorkerSettings;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
 import org.arso.wallet.worker.WorkerSettings.Mode;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -75,5 +77,10 @@ public class CompletionConfig {
                 holds,
                 meters,
                 observations);
+    }
+
+    @Bean
+    HealthIndicator workerPoolHealthIndicator(WorkerPool pool) {
+        return () -> pool.isAlive() ? Health.up().build() : Health.down().build();
     }
 }

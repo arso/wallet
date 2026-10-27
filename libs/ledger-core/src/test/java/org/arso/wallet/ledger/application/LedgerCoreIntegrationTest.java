@@ -139,7 +139,7 @@ class LedgerCoreIntegrationTest {
 
         var recorded = store.recordVerification(payment.id(), "aml", verdict(true));
         var duplicate = store.recordVerification(payment.id(), "aml", verdict(false));
-        payments.reject(payment.id(), RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
+        timeOut(payment.id());
         var late = store.recordVerification(payment.id(), "kyc", verdict(true));
 
         assertThat(recorded).isInstanceOfSatisfying(StepWrite.Recorded.class, r -> assertThat(r.payment().verifications())
@@ -222,7 +222,7 @@ class LedgerCoreIntegrationTest {
         payments.markExecuting(completed, Actor.COMPLETION_SERVICE);
 
         client.failNext(CONFLICT_BEFORE_COMMIT);
-        payments.reject(rejected.id(), RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
+        timeOut(rejected.id());
         client.failNext(CONFLICT_BEFORE_COMMIT);
         payments.complete(completed.id(), "ext-1", Actor.TRANSFER_EXECUTOR);
 
@@ -239,7 +239,7 @@ class LedgerCoreIntegrationTest {
         var id = account(100);
         var payment = pendingWithdraw(id, 10, List.of());
 
-        payments.reject(payment.id(), RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
+        timeOut(payment.id());
         payments.reject(payment, RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
 
         assertThat(store.findAccount(id).orElseThrow().balance()).isEqualTo(usd(100));
@@ -273,7 +273,7 @@ class LedgerCoreIntegrationTest {
     void everyDecidingReadIsConsistent() {
         var id = account(10);
         var payment = pendingWithdraw(id, 5, List.of());
-        payments.reject(payment.id(), RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
+        timeOut(payment.id());
         store.findResponse("missing", now());
 
         assertThat(client.gets).isNotEmpty().allSatisfy(get -> assertThat(get.consistentRead()).isTrue());
@@ -305,6 +305,10 @@ class LedgerCoreIntegrationTest {
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new PutPayment(payment)),
                     payment);
         });
+    }
+
+    void timeOut(PaymentId id) {
+        payments.reject(store.findPayment(id).orElseThrow(), RejectReason.VERIFICATION_TIMEOUT, null, Actor.TIMEOUT_CHECKER);
     }
 
     static Payment allowed(Payment p) {

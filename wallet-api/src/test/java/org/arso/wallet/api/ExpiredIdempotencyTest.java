@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 @TestPropertySource(properties = "wallet.idempotency.ttl=1s")
@@ -14,13 +13,14 @@ class ExpiredIdempotencyTest extends ApiTest {
     void expiredButNotDeletedKeyIsTreatedAsNew() throws Exception {
         var id = account(100);
         var key = UUID.randomUUID().toString();
-        var first = withdraw(id, key, 10);
+        String first = read(withdraw(id, key, 10).expectStatus().isAccepted(), "$.payment_id");
 
         Thread.sleep(2100);
-        var second = withdraw(id, key, 10);
+        withdraw(id, key, 10)
+                .expectStatus().isAccepted()
+                .expectBody()
+                .jsonPath("$.payment_id").value(String.class, v -> assertThat(v).isNotEqualTo(first));
 
-        assertThat(second.status()).isEqualTo(HttpStatus.ACCEPTED);
-        assertThat(second.text("payment_id")).isNotEqualTo(first.text("payment_id"));
         assertThat(balance(id)).isEqualTo(80);
     }
 }

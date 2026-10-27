@@ -35,6 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.filter.ServerHttpObservationFilter;
 import org.springframework.web.servlet.HandlerMapping;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -51,6 +53,7 @@ public class WalletController {
     private final ApiErrors errors;
     private final JsonMapper mapper;
     private final JsonMapper canonical;
+    private final JsonMapper strict;
     private final MeterRegistry meters;
 
     public WalletController(
@@ -67,6 +70,10 @@ public class WalletController {
         this.mapper = mapper;
         this.meters = meters;
         this.canonical = mapper.rebuild().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
+        this.strict = mapper.rebuild()
+                .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+                .build();
     }
 
     @PostMapping("/accounts")
@@ -170,7 +177,7 @@ public class WalletController {
 
     private <T> T parse(byte[] body, Class<T> type) {
         try {
-            return mapper.readValue(body.length == 0 ? "{}".getBytes() : body, type);
+            return strict.readValue(body.length == 0 ? "{}".getBytes() : body, type);
         } catch (JacksonException e) {
             throw new DomainException(INVALID_REQUEST, "malformed request body");
         }
