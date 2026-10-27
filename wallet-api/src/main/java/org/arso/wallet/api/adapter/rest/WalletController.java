@@ -188,7 +188,8 @@ public class WalletController {
         if (HttpStatusCode.valueOf(response.status()).isError()) {
             FAILED_REQUESTS.info("{} {} {} {}", req.getMethod(), req.getRequestURI(), response.status(), response.body());
         }
-        return ResponseEntity.status(response.status()).contentType(MediaType.APPLICATION_JSON).body(response.body());
+        var type = response.status() >= 400 ? MediaType.APPLICATION_PROBLEM_JSON : MediaType.APPLICATION_JSON;
+        return ResponseEntity.status(response.status()).contentType(type).body(response.body());
     }
 
     private static Long number(String name, String value) {

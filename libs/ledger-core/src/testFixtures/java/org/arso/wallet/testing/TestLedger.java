@@ -9,7 +9,7 @@ import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
 import org.arso.wallet.ledger.application.PaymentTransitions;
 import org.arso.wallet.ledger.application.Transactions;
-import org.arso.wallet.ledger.application.Transactions.Plan;
+import org.arso.wallet.ledger.application.Transactions.Writes;
 import org.arso.wallet.ledger.domain.Account;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.Actor;
@@ -64,7 +64,7 @@ public final class TestLedger {
     public LedgerEntry deposit(AccountId id, long amount, Counterparty payer) {
         return transactions.onAccount(id, a -> {
             var change = a.deposit(usd(amount), "prov-" + PaymentId.random(), payer, now());
-            return new Plan<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
+            return new Writes<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
         });
     }
 
@@ -77,7 +77,7 @@ public final class TestLedger {
             var paymentId = PaymentId.random();
             var change = a.withdraw(usd(amount), paymentId, PARTY, now());
             var payment = Payment.create(paymentId, id, usd(amount), PARTY.id(), steps, now());
-            return new Plan<>(
+            return new Writes<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new PutPayment(payment)),
                     payment);
         });
@@ -91,14 +91,14 @@ public final class TestLedger {
     public void block(AccountId id) {
         transactions.onAccount(id, a -> {
             var change = a.block("aml", Actor.AML, now());
-            return new Plan<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
+            return new Writes<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
         });
     }
 
     public void cancel(Payment payment) {
         transactions.onAccount(payment.accountId(), a -> {
             var change = a.cancelWithdraw(payment.amount(), payment.id(), now());
-            return new Plan<>(
+            return new Writes<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()),
                             new UpdatePayment(payment.cancel(now()), PaymentStatus.PENDING)),
                     change.entry());

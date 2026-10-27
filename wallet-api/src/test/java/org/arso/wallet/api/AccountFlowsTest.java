@@ -59,6 +59,10 @@ class AccountFlowsTest extends ApiTest {
         assertError(get("/accounts/not-an-id"), HttpStatus.NOT_FOUND, "not_found");
         assertError(get("/payments/01JBC3Z8Q4M6T2N9X5R7K1W0HV"), HttpStatus.NOT_FOUND, "not_found");
         assertError(get("/accounts/" + id + "/ledger?limit=500"), HttpStatus.BAD_REQUEST, "invalid_request");
+        var unknownPath = get("/no-such-path");
+        assertThat(unknownPath.status()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(unknownPath.number("status")).isEqualTo(404);
+        assertThat(unknownPath.text("title")).isEqualTo("Not Found");
     }
 
     @Test
@@ -123,5 +127,9 @@ class AccountFlowsTest extends ApiTest {
     static void assertError(Resp response, HttpStatus status, String error) {
         assertThat(response.status()).isEqualTo(status);
         assertThat(response.text("error")).isEqualTo(error);
+        assertThat(response.text("type")).isEqualTo("about:blank");
+        assertThat(response.number("status")).isEqualTo(status.value());
+        assertThat(response.text("title")).isEqualTo(status.getReasonPhrase());
+        assertThat(response.body().has("detail")).isTrue();
     }
 }

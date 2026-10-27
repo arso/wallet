@@ -6,6 +6,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
   jackson:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: non_null

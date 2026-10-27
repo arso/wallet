@@ -16,7 +16,7 @@ import java.util.function.BiFunction;
 import org.arso.wallet.api.port.BeneficiaryLookup;
 import org.arso.wallet.api.port.JsonWriter;
 import org.arso.wallet.ledger.application.Transactions;
-import org.arso.wallet.ledger.application.Transactions.Plan;
+import org.arso.wallet.ledger.application.Transactions.Writes;
 import org.arso.wallet.ledger.domain.Account;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.AccountStatus;
@@ -86,7 +86,7 @@ public final class WalletCommands {
                 var change = account.deposit(amount, externalTxId, payer, now);
                 var response = respond(HTTP_CREATED, Views.deposit((Deposited) change.entry()));
                 var dedup = new PutDeposit(new DepositRecord(externalTxId, id, change.entry().meta().seq()), now);
-                return new Plan<>(items(change, dedup, idem.put(response, now)), response);
+                return new Writes<>(items(change, dedup, idem.put(response, now)), response);
             });
         } catch (ConditionFailedException e) {
             if (e.conflict() instanceof DepositExists(var original)) {
@@ -106,7 +106,7 @@ public final class WalletCommands {
             var change = account.withdraw(amount, paymentId, beneficiary, now);
             var payment = Payment.create(paymentId, id, amount, beneficiaryId, settings.verificationSteps(), receivedAt);
             var response = respond(HTTP_ACCEPTED, Views.payment(payment));
-            return new Plan<>(items(change, new PutPayment(payment), idem.put(response, now)), response);
+            return new Writes<>(items(change, new PutPayment(payment), idem.put(response, now)), response);
         });
     }
 
@@ -118,7 +118,7 @@ public final class WalletCommands {
                 var next = payment.cancel(now);
                 var change = account.cancelWithdraw(payment.amount(), id, now);
                 var response = respond(HTTP_OK, Views.payment(next));
-                return new Plan<>(
+                return new Writes<>(
                         items(change, new UpdatePayment(next, PaymentStatus.PENDING), idem.put(response, now)), next);
             });
             ledgerMetrics.finalized(cancelled);
@@ -148,7 +148,7 @@ public final class WalletCommands {
             var now = now();
             var change = action.apply(account, now);
             var response = respond(HTTP_OK, Views.account(change.account()));
-            return new Plan<>(items(change, idem.put(response, now)), response);
+            return new Writes<>(items(change, idem.put(response, now)), response);
         });
     }
 

@@ -46,7 +46,7 @@ public final class Views {
 
     public record LedgerPage(List<Map<String, Object>> entries, Long nextBeforeSeq) {}
 
-    public record ErrorView(String error, String message) {}
+    public record ProblemView(String type, String title, int status, String detail, String error) {}
 
     static AccountView account(Account a) {
         return new AccountView(

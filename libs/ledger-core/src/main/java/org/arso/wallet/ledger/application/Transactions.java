@@ -19,10 +19,11 @@ import org.arso.wallet.ledger.port.TxItem;
 
 public final class Transactions {
 
-    public record Plan<T>(List<TxItem> items, T result) {
+    /** Items to commit in one transaction, and what to return once they are committed. */
+    public record Writes<T>(List<TxItem> items, T result) {
 
-        public static <T> Plan<T> none(T result) {
-            return new Plan<>(List.of(), result);
+        public static <T> Writes<T> none(T result) {
+            return new Writes<>(List.of(), result);
         }
     }
 
@@ -43,30 +44,30 @@ public final class Transactions {
     }
 
     /**
-     * Optimistic locking loop (spec 6.1): read the account, plan the change, commit. A version or seq conflict re-reads
-     * and re-plans with a new token; a transient error resends the same items with the same token.
+     * Optimistic locking loop (spec 6.1): read the account, decide the writes, commit. A version or seq conflict re-reads
+     * and decides again with a new token; a transient error resends the same items with the same token.
      */
-    public <T> T onAccount(AccountId id, Function<Account, Plan<T>> planner) {
-        Plan<T> plan = null;
+    public <T> T onAccount(AccountId id, Function<Account, Writes<T>> decide) {
+        Writes<T> writes = null;
         String token = null;
         for (int attempt = 1; ; attempt++) {
-            if (plan == null) {
+            if (writes == null) {
                 var account = store.findAccount(id).orElseThrow(() -> new DomainException(NOT_FOUND, "unknown account " + id));
-                plan = planner.apply(account);
-                if (plan.items().isEmpty()) {
-                    return plan.result();
+                writes = decide.apply(account);
+                if (writes.items().isEmpty()) {
+                    return writes.result();
                 }
                 token = UUID.randomUUID().toString();
             }
             try {
-                store.commit(plan.items(), token);
-                return plan.result();
+                store.commit(writes.items(), token);
+                return writes.result();
             } catch (ConditionFailedException e) {
                 if (!(e.conflict() instanceof AccountChanged)) {
                     throw e;
                 }
                 metrics.lockRetry();
-                plan = null;
+                writes = null;
             } catch (TransientStoreException _) {
                 // same items, same token
             }

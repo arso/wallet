@@ -32,7 +32,7 @@ import org.arso.wallet.events.WithdrawRequest;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.application.CrashPoint;
 import org.arso.wallet.ledger.application.PaymentTransitions;
-import org.arso.wallet.ledger.application.Transactions.Plan;
+import org.arso.wallet.ledger.application.Transactions.Writes;
 import org.arso.wallet.ledger.domain.AccountStatus;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
@@ -318,7 +318,7 @@ class TimeoutCheckerTest {
     static void release(Payment payment) {
         LEDGER.transactions.onAccount(payment.accountId(), a -> {
             var change = a.release("fixed", AccountStatus.ACTIVE, false, Actor.INTERNAL, now());
-            return new Plan<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
+            return new Writes<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.entry());
         });
     }
 

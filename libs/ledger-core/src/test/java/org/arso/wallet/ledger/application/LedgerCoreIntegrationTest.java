@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 import org.arso.wallet.ledger.FlakyDynamoDb;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
-import org.arso.wallet.ledger.application.Transactions.Plan;
+import org.arso.wallet.ledger.application.Transactions.Writes;
 import org.arso.wallet.ledger.application.Transactions.RetryPolicy;
 import org.arso.wallet.ledger.domain.Account;
 import org.arso.wallet.ledger.domain.AccountId;
@@ -301,7 +301,7 @@ class LedgerCoreIntegrationTest {
             for (var v : verifications.entrySet()) {
                 payment = payment.recordVerification(v.getKey(), v.getValue());
             }
-            return new Plan<>(
+            return new Writes<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new PutPayment(payment)),
                     payment);
         });
@@ -337,8 +337,8 @@ class LedgerCoreIntegrationTest {
         return new Verification(allowed, null, now(), now(), false);
     }
 
-    static Plan<Account> change(Account.Change change) {
-        return new Plan<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.account());
+    static Writes<Account> change(Account.Change change) {
+        return new Writes<>(List.of(new PutAccount(change.account()), new PutEntry(change.entry())), change.account());
     }
 
     static Money usd(long amount) {

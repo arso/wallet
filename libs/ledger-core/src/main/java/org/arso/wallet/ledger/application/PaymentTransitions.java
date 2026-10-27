@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Supplier;
-import org.arso.wallet.ledger.application.Transactions.Plan;
+import org.arso.wallet.ledger.application.Transactions.Writes;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.Payment;
@@ -58,7 +58,7 @@ public final class PaymentTransitions {
             var now = now();
             var rejected = payment.reject(reason, now);
             var change = account.rejectWithdraw(payment.amount(), payment.id(), reason, verifier, actor, now);
-            return new Plan<>(
+            return new Writes<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new UpdatePayment(rejected, expected)),
                     rejected);
         })));
@@ -73,7 +73,7 @@ public final class PaymentTransitions {
             var now = now();
             var completed = payment.complete(externalTxId, now);
             var change = account.completeWithdraw(payment.id(), externalTxId, actor, now);
-            return new Plan<>(
+            return new Writes<>(
                     List.of(new PutAccount(change.account()), new PutEntry(change.entry()), new UpdatePayment(completed, EXECUTING)),
                     completed);
         })));

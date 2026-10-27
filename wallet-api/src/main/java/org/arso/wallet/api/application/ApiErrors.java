@@ -6,7 +6,7 @@ import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 import java.util.Optional;
-import org.arso.wallet.api.application.Views.ErrorView;
+import org.arso.wallet.api.application.Views.ProblemView;
 import org.arso.wallet.api.port.BeneficiaryUnavailableException;
 import org.arso.wallet.api.port.JsonWriter;
 import org.arso.wallet.ledger.application.LockRetriesExhaustedException;
@@ -35,7 +35,18 @@ public final class ApiErrors {
     }
 
     public ApiResponse response(int status, String error, String message) {
-        return new ApiResponse(status, json.write(new ErrorView(error, message)), error);
+        return new ApiResponse(status, json.write(new ProblemView("about:blank", title(status), status, message, error)), error);
+    }
+
+    private static String title(int status) {
+        return switch (status) {
+            case HTTP_BAD_REQUEST -> "Bad Request";
+            case HTTP_NOT_FOUND -> "Not Found";
+            case HTTP_CONFLICT -> "Conflict";
+            case HTTP_UNPROCESSABLE_CONTENT -> "Unprocessable Content";
+            case HTTP_UNAVAILABLE -> "Service Unavailable";
+            default -> "Internal Server Error";
+        };
     }
 
     private static int status(DomainException.Code code) {
