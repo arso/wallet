@@ -24,6 +24,8 @@ import org.arso.wallet.worker.WorkerPool;
 import org.arso.wallet.worker.WorkerSettings;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
 import org.arso.wallet.worker.WorkerSettings.Mode;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -121,5 +123,10 @@ public class ExecutorConfig {
         circuit.getEventPublisher().onStateTransition(
                 e -> pool.circuitOpen(e.getStateTransition().getToState() == CircuitBreaker.State.OPEN));
         return pool;
+    }
+
+    @Bean
+    HealthIndicator workerPoolHealthIndicator(WorkerPool pool) {
+        return () -> pool.isAlive() ? Health.up().build() : Health.down().build();
     }
 }

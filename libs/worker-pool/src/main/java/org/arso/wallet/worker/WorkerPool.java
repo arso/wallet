@@ -14,6 +14,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -31,6 +32,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
@@ -142,6 +144,10 @@ public final class WorkerPool implements Runnable {
 
     public void start() {
         poller = Thread.ofPlatform().name("worker-poll-" + settings.service()).start(this);
+    }
+
+    public boolean isAlive() {
+        return poller != null && poller.isAlive();
     }
 
     public void stop() {
@@ -392,11 +398,15 @@ public final class WorkerPool implements Runnable {
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> revoked) {
-            var selected = revoked.stream().map(partitions::get).filter(p -> p != null).toList();
+            var selected = revoked.stream().map(partitions::get).filter(Objects::nonNull).toList();
             selected.forEach(p -> p.pending.clear());
             awaitInFlight(selected, settings.revokeWait());
             revoked.forEach(owned::remove);
-            commit(selected, true);
+            try {
+                commit(selected, true);
+            } catch (KafkaException e) {
+                // the new owner re-reads from the last committed offset; handlers are idempotent
+            }
             revoked.forEach(partitions::remove);
         }
 
