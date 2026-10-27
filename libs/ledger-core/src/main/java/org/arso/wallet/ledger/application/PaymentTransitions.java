@@ -45,10 +45,6 @@ public final class PaymentTransitions {
         this.metrics = metrics;
     }
 
-    public Payment reject(PaymentId id, RejectReason reason, String verifier, Actor actor) {
-        return reject(find(id), reason, verifier, actor);
-    }
-
     public Payment reject(Payment payment, RejectReason reason, String verifier, Actor actor) {
         var expected = reason == EXECUTION_FAILED ? EXECUTING : PENDING;
         if (payment.status() != expected) {
