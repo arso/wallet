@@ -1,11 +1,28 @@
 # Observability
 
-Six graphs that show whether the system is healthy and where errors come from, and how to follow one withdrawal in Jaeger ([below](#traces-in-jaeger)). All queries use metrics the apps already export (see the metrics table in [README](README.md#observability)).
+Six graphs that show whether the system is healthy and where errors come from, and how to follow one withdrawal in Jaeger ([below](#traces-in-jaeger)). All queries use the metrics listed below.
+
+## Metrics
+
+| Metric | Type | Where |
+|---|---|---|
+| `http_server_requests_seconds{uri, status}` (route templates): request rate, latency and volume of deposits, withdrawals and blocks | histogram | wallet-api |
+| `http_client_requests_seconds{uri, status}`: TransferService and beneficiary calls | histogram | transfer-executor, wallet-api |
+| `dynamodb_request_seconds{operation, outcome}` | histogram | every app using ledger-core |
+| `api_errors_total{route, error}` | counter | wallet-api |
+| `withdrawal_end_to_end_seconds{outcome, reason}`; its `_count` is the finalized payments count | histogram | whoever writes the final status |
+| `withdrawal_verification_seconds` | histogram | completion (`received_at` to `EXECUTING`) |
+| `transfer_seconds{outcome}` | histogram | `EXECUTING` to final |
+| `verification_step_seconds{step}`, `late_verification_results_total{step}` | histogram, counter | completion |
+| `circuit_breaker_state` (0 closed, 1 half-open, 2 open) | gauge | transfer-executor |
+| `stuck_executing_redriven_total` | counter | timeout-checker |
+| `optimistic_lock_retries_total` | counter | every app using ledger-core |
+| worker pool: see [worker-pool](../libs/worker-pool/README.md#metrics) | | consumers |
 
 ## Graph the queries in Prometheus
 
 1. Start everything: `make up-all`.
-2. Open http://localhost:9090 and check Status > Target health: every app should be `up`.
+2. Open http://localhost:9090 and check Status > Target health: every app should be `up`. Prometheus scrapes `/actuator/prometheus` of each app on its management port ([docker/prometheus.yml](../docker/prometheus.yml)); apps that are not running show as down.
 3. Send some traffic. Paste this into a terminal (needs `jq`); it runs for about a minute:
 
    ```bash
@@ -129,6 +146,8 @@ max(circuit_breaker_state)
 DynamoDB failures (`conditional_failed` and `transaction_conflict` are normal races, so they are left out; so is `CreateTable`, which fails on every local wallet-api start because the table already exists), TransferService answers other than 2xx (422 is a business reject, anything else an unknown outcome), circuit breaker (0 closed, 1 half-open, 2 open). Bad: any throttled or error call, non-422 errors, breaker above 0.
 
 ## Traces in Jaeger
+
+Apps send spans over OTLP to Jaeger (`management.opentelemetry.tracing.export.otlp.endpoint`, default `http://localhost:4318/v1/traces`; sampling `management.tracing.sampling.probability`, 1.0 locally). The trace context travels between services in the Kafka `traceparent` header.
 
 Open http://localhost:16686. A search always needs a Service; Tags narrow it down. Set Lookback to cover the time of the payment (default: last hour).
 
