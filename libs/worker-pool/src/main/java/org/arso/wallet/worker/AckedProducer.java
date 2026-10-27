@@ -44,6 +44,7 @@ public final class AckedProducer implements AutoCloseable {
         Observation.createNotStarted("kafka.send", () -> context, observations)
                 .contextualName(record.topic() + " send")
                 .lowCardinalityKeyValue("topic", record.topic())
+                .highCardinalityKeyValue("messaging.kafka.message.key", String.valueOf(record.key()))
                 .observeChecked(() -> {
                     try {
                         producer.send(record).get();

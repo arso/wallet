@@ -266,6 +266,7 @@ public final class WorkerPool implements Runnable {
                 .contextualName(record.topic() + " process")
                 .lowCardinalityKeyValue("service", settings.service())
                 .lowCardinalityKeyValue("topic", record.topic())
+                .highCardinalityKeyValue("messaging.kafka.message.key", String.valueOf(record.key()))
                 .observe(() -> policy.run(record));
         switch (outcome) {
             case Outcome.Done _ -> completions.add(new Completion(tp, record.offset(), true));
