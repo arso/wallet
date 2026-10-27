@@ -2,6 +2,7 @@ package org.arso.wallet.worker;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.transport.ReceiverContext;
@@ -74,6 +75,7 @@ public final class WorkerPool implements Runnable {
     private record Completion(TopicPartition tp, long offset, boolean done) {}
 
     private final KafkaConsumer<String, byte[]> consumer;
+    private final KafkaClientMetrics consumerMetrics;
     private final WorkerSettings settings;
     private final FailurePolicy policy;
     private final Map<TopicPartition, Partition> partitions = new HashMap<>();
@@ -114,6 +116,8 @@ public final class WorkerPool implements Runnable {
             ObservationRegistry observations) {
         this.observations = observations;
         this.consumer = new KafkaConsumer<>(withDefaults(consumerConfig), new StringDeserializer(), new ByteArrayDeserializer());
+        this.consumerMetrics = new KafkaClientMetrics(consumer);
+        consumerMetrics.bindTo(meters);
         this.settings = settings;
         this.policy = new FailurePolicy(handler, classifier, holds, settings, meters);
         this.permits = new Semaphore(settings.maxInFlight());
@@ -405,6 +409,7 @@ public final class WorkerPool implements Runnable {
         try {
             commit(true);
         } finally {
+            consumerMetrics.close();
             consumer.close();
         }
     }

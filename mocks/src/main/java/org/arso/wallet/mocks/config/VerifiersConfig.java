@@ -26,8 +26,8 @@ import org.springframework.context.annotation.Configuration;
 public class VerifiersConfig {
 
     @Bean(destroyMethod = "close")
-    AckedProducer verifierProducer(MocksProperties properties, ObservationRegistry observations) {
-        return new AckedProducer(properties.kafkaBootstrapServers(), Map.of(), observations);
+    AckedProducer verifierProducer(MocksProperties properties, ObservationRegistry observations, MeterRegistry meters) {
+        return new AckedProducer(properties.kafkaBootstrapServers(), Map.of(), observations, meters);
     }
 
     @Bean

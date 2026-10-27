@@ -834,7 +834,7 @@ Gauges based on DynamoDB counts (`EXECUTING`, `NEEDS_REVIEW`) need a periodic qu
 |---|---|
 | HTTP request stats | built-in (`http.server.requests`); enable percentile histograms in config |
 | JVM, GC, threads, CPU, process, logging | built-in |
-| Kafka client metrics (fetch, client-side lag, producer sends/errors) | not collected yet: the apps use plain Kafka clients, so bind Micrometer `KafkaClientMetrics` to add them |
+| Kafka client metrics (fetch, client-side lag, producer sends/errors) | Micrometer `KafkaClientMetrics` bound in the worker pool and the acked producer; most are turned off in `management.metrics.enable` |
 | Tracing | built-in Micrometer Tracing + OpenTelemetry exporter (check exact starter for Boot 4) |
 | Circuit breaker, retries | Resilience4j → Micrometer (automatic) |
 | DynamoDB latency | **custom**: AWS SDK v2 `MetricPublisher` or `ExecutionInterceptor` → Micrometer |

@@ -35,8 +35,9 @@ public class CompletionConfig {
     }
 
     @Bean(destroyMethod = "close")
-    AckedProducer ackedProducer(CompletionProperties properties, ObservationRegistry observations) {
-        return new AckedProducer(properties.kafka().bootstrapServers(), Map.of(), observations);
+    AckedProducer ackedProducer(
+            CompletionProperties properties, ObservationRegistry observations, MeterRegistry meters) {
+        return new AckedProducer(properties.kafka().bootstrapServers(), Map.of(), observations, meters);
     }
 
     @Bean

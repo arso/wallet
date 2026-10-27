@@ -18,6 +18,7 @@ Six graphs that show whether the system is healthy and where errors come from, a
 | `stuck_executing_redriven_total` | counter | timeout-checker |
 | `optimistic_lock_retries_total` | counter | every app using ledger-core |
 | worker pool: see [worker-pool](../libs/worker-pool/README.md#metrics) | | consumers |
+| Kafka client: `kafka_consumer_fetch_manager_records_lag_max`, `kafka_consumer_fetch_manager_records_consumed_total`, `kafka_consumer_coordinator_rebalance_total`, `kafka_consumer_coordinator_commit_latency_avg`, `kafka_producer_record_send_total`, `kafka_producer_record_error_total`, `kafka_producer_record_retry_total`, `kafka_producer_request_latency_avg`. Other Kafka client metrics are turned off in `management.metrics.enable` | gauge, counter | consumers and producers (not the bridge) |
 
 ## Graph the queries in Prometheus
 

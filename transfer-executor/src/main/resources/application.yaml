@@ -10,6 +10,12 @@ management:
   metrics:
     tags:
       service: ${spring.application.name}
+    enable:
+      kafka: false
+      kafka.consumer.fetch.manager.records.lag.max: true
+      kafka.consumer.fetch.manager.records.consumed.total: true
+      kafka.consumer.coordinator.rebalance.total: true
+      kafka.consumer.coordinator.commit.latency.avg: true
     distribution:
       maximum-expected-value:
         dynamodb_request: 10s

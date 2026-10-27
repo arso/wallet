@@ -282,6 +282,9 @@ class CompletionServiceTest {
         assertThat(meters.find("dynamodb_request").tags("operation", "UpdateItem", "outcome", "ok").timer()).isNotNull();
         assertThat(meters.find("worker_inflight").tag("service", "completion-service").gauge()).isNotNull();
         assertThat(meters.find("worker_paused_partitions").tag("reason", "backpressure").gauge()).isNotNull();
+        assertThat(meters.find("kafka.consumer.fetch.manager.records.consumed.total").functionCounter()).isNotNull();
+        assertThat(meters.find("kafka.producer.record.send.total").functionCounter()).isNotNull();
+        assertThat(meters.find("kafka.consumer.fetch.manager.fetch.latency.avg").meter()).isNull();
         assertNoIdsInLabels(meters);
     }
 
