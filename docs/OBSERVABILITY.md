@@ -35,7 +35,7 @@ Six graphs that show whether the system is healthy and where errors come from, a
        post /accounts/$acc/withdrawals '{"amount":10,"currency":"USD","beneficiary_id":"'$b'"}'
      done
      post /accounts/$acc/withdrawals '{"amount":100000,"currency":"USD","beneficiary_id":"b-1"}'
-     post /payments/01M00000000000000000000000/cancel '{"reason":"test"}'
+     post /payments/01M00000000000000000000000/cancel ''
      echo; sleep 2
    done
    ```

@@ -88,7 +88,7 @@ public class WalletController {
 
     @PostMapping("/payments/{id}/cancel")
     ResponseEntity<String> cancel(HttpServletRequest req, @PathVariable String id) throws Exception {
-        return post(req, RequestBodies.Reason.class, (idem, _) -> commands.cancel(idem, new PaymentId(id)));
+        return post(req, (idem, _) -> commands.cancel(idem, new PaymentId(id)));
     }
 
     @PostMapping("/internal/accounts/{id}/block")
@@ -137,13 +137,18 @@ public class WalletController {
 
     private <T> ResponseEntity<String> post(HttpServletRequest req, Class<T> type, BiFunction<Idem, T, ApiResponse> operation)
             throws IOException, NoSuchAlgorithmException {
+        return post(req, (idem, body) -> operation.apply(idem, parse(body, type)));
+    }
+
+    private ResponseEntity<String> post(HttpServletRequest req, BiFunction<Idem, byte[], ApiResponse> operation)
+            throws IOException, NoSuchAlgorithmException {
         var key = req.getHeader(IDEMPOTENCY_KEY);
         if (key == null || key.isBlank() || key.length() > 128) {
             return send(req, errors.response(HttpStatus.BAD_REQUEST.value(), "invalid_request", "Idempotency-Key header is required"));
         }
         var body = req.getInputStream().readAllBytes();
         var idem = new Idem(key, hash(req, body));
-        return send(req, idempotency.execute(idem, () -> operation.apply(idem, parse(body, type))));
+        return send(req, idempotency.execute(idem, () -> operation.apply(idem, body)));
     }
 
     private String hash(HttpServletRequest req, byte[] body) throws NoSuchAlgorithmException {

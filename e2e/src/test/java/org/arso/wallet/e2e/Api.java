@@ -78,7 +78,7 @@ final class Api {
     }
 
     static Response cancel(String payment) {
-        return post("/payments/" + payment + "/cancel", "{\"reason\":\"e2e\"}");
+        return post("/payments/" + payment + "/cancel", "");
     }
 
     static JsonNode payment(String id) {
