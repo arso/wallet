@@ -10,11 +10,17 @@ import org.arso.wallet.ledger.domain.Actor;
 public interface AccountHolds {
 
     enum Result {
-        /** This call put the account on hold; also when it was already held for a different record. */
+        /**
+         * This call put the account on hold; also when it was already held for a different record.
+         */
         HELD,
-        /** This same record ({@code hold_ref}) already holds the account, e.g. redelivered after a crash; nothing changed. */
+        /**
+         * This same record ({@code hold_ref}) already holds the account, e.g. redelivered after a crash; nothing changed.
+         */
         ALREADY_HELD,
-        /** No account to hold: no key, an invalid id, or an unknown account or payment. The record is skipped. */
+        /**
+         * No account to hold: no key, an invalid id, or an unknown account or payment. The record is skipped.
+         */
         UNATTRIBUTABLE
     }
 

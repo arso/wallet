@@ -70,7 +70,7 @@ public final class DynamoLedgerStore implements LedgerStore {
 
     private Payment setStep(PaymentId id, String step, Verification verification, boolean open) {
         // payment exists and the step has no result yet (first one wins); when open, also only while the payment is not final
-        var condition = "attribute_exists(PK) AND attribute_not_exists(#vf.#st)" + (open ?" AND #s IN (:pending, :executing)" : "");
+        var condition = "attribute_exists(PK) AND attribute_not_exists(#vf.#st)" + (open ? " AND #s IN (:pending, :executing)" : "");
         var names = new HashMap<>(Map.of("#vf", "verifications", "#st", step));
         var values = new HashMap<>(Map.of(":v", AttributeValue.fromM(Items.verification(verification))));
         if (open) {
