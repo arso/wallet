@@ -28,7 +28,7 @@ public final class AmlMonitor {
     public void on(LedgerEvent event) {
         var key = "aml-" + event.accountId() + "-" + event.seq();
         switch (event.eventType()) {
-            case "deposit" -> {
+            case Events.DEPOSIT -> {
                 if (event.amount() != null && event.amount() >= blockThreshold) {
                     apply(event.accountId(), Action.BLOCK, "large deposit", key);
                 } else if (event.externalTxId() != null && event.externalTxId().startsWith("aml-unblock")) {

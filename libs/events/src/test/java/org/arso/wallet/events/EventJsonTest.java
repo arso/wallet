@@ -18,8 +18,8 @@ class EventJsonTest {
 
     @Test
     void depositRoundTripsWithSpecFieldNames() {
-        var event = new LedgerEvent(1, "01JBC3Z8Q4M6T2N9X5R7K1W0HV", 2, "deposit", AT, 10000, "user", null, null, 10000L,
-                "USD", "prov-778812", PAYER, null, null, null, null, null);
+        var event = new LedgerEvent(1, "01JBC3Z8Q4M6T2N9X5R7K1W0HV", 2, "deposit", AT, 10000, "USER", null, null, 10000L,
+                "USD", "prov-778812", PAYER, null, null, null, null);
 
         var json = text(event);
 
@@ -34,13 +34,14 @@ class EventJsonTest {
 
     @Test
     void holdAndReleaseRoundTrip() {
-        var held = new LedgerEvent(1, "01JBC3Z8Q4M6T2N9X5R7K1W0HV", 5, Events.ACCOUNT_HELD, AT, 70, "bridge",
+        var held = new LedgerEvent(1, "01JBC3Z8Q4M6T2N9X5R7K1W0HV", 5, Events.ACCOUNT_HELD, AT, 70, "BRIDGE",
                 "RecordTooLargeException", null, null, null, null, null, null, null,
-                "ledger/01JBC3Z8Q4M6T2N9X5R7K1W0HV/4", "BLOCKED", null);
-        var released = new LedgerEvent(1, "01JBC3Z8Q4M6T2N9X5R7K1W0HV", 6, Events.ACCOUNT_RELEASED, AT, 70, "internal",
-                "fixed", null, null, null, null, null, null, null, null, null, "ACTIVE");
+                "ledger/01JBC3Z8Q4M6T2N9X5R7K1W0HV/4", null);
+        var released = new LedgerEvent(1, "01JBC3Z8Q4M6T2N9X5R7K1W0HV", 6, Events.ACCOUNT_RELEASED, AT, 70, "INTERNAL",
+                "fixed", null, null, null, null, null, null, null, null, "ACTIVE");
 
-        assertThat(text(held)).contains("\"hold_ref\":\"ledger/01JBC3Z8Q4M6T2N9X5R7K1W0HV/4\"", "\"prior_status\":\"BLOCKED\"");
+        assertThat(text(held)).contains("\"hold_ref\":\"ledger/01JBC3Z8Q4M6T2N9X5R7K1W0HV/4\"")
+                .doesNotContain("prior_status");
         assertThat(text(released)).contains("\"released_to\":\"ACTIVE\"");
         assertThat(roundTrip(held, LedgerEvent.class)).isEqualTo(held);
         assertThat(roundTrip(released, LedgerEvent.class)).isEqualTo(released);

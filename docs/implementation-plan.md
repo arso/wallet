@@ -147,7 +147,7 @@ Dropped (spec change 6). Add back when there is real static account data.
 | `event_type` | S | yes | see table below |
 | `recorded_at` | S | yes | server time when the wallet wrote the entry (spec name: `timestamp`) |
 | `balance_after` | N | yes | minor units |
-| `actor` | S | yes | `user` \| `completion-service` \| `transfer-executor` \| `timeout-checker` \| `bridge` \| `aml` \| `internal` |
+| `actor` | S | yes | `USER` \| `COMPLETION_SERVICE` \| `TRANSFER_EXECUTOR` \| `TIMEOUT_CHECKER` \| `BRIDGE` \| `AML` \| `INTERNAL` |
 | `reason` | S | no | free text or reject reason |
 | `payment_id` | S | no | withdrawal-related events |
 | `amount` | N | no | events that move money |
@@ -359,7 +359,7 @@ Plain Java records, enums and sealed interfaces in `ledger-core`. No Spring, AWS
 | `Actor` | `USER`, `COMPLETION_SERVICE`, `TRANSFER_EXECUTOR`, `TIMEOUT_CHECKER`, `BRIDGE`, `AML`, `INTERNAL` |
 | `LedgerEventType` | `ACCOUNT_CREATED`, `DEPOSIT`, `WITHDRAW`, `WITHDRAW_COMPLETED`, `USER_CANCEL_WITHDRAW`, `REJECT_WITHDRAW`, `ACCOUNT_BLOCKED`, `ACCOUNT_UNBLOCKED`, `ACCOUNT_HELD`, `ACCOUNT_RELEASED` |
 
-Stored and sent in the spec's spelling: `event_type` as snake_case (`reject_withdraw`), `actor` as kebab-case (`completion-service`), all others upper case (`PENDING`).
+Stored and sent as: `event_type` in the spec's snake_case (`reject_withdraw`), all others as the enum name (`PENDING`, `COMPLETION_SERVICE`).
 
 ### 4.3 Aggregates
 
@@ -469,7 +469,6 @@ Producer: bridge. Consumers: AML mock, future read models. One message per ledge
 | `beneficiary` | object | no | counterparty, see 3.6 |
 | `verifier` | string | no | |
 | `hold_ref` | string | no | `account_held` only |
-| `prior_status` | string | no | `account_held` only |
 | `released_to` | string | no | `account_released` only |
 
 Example:
@@ -482,7 +481,7 @@ Example:
   "event_type": "deposit",
   "recorded_at": "2026-10-26T12:00:00.123Z",
   "balance_after": 10000,
-  "actor": "user",
+  "actor": "USER",
   "amount": 10000,
   "currency": "USD",
   "external_tx_id": "prov-778812",

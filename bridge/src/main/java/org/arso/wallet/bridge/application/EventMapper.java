@@ -53,7 +53,6 @@ public final class EventMapper {
         Beneficiary beneficiary = null;
         String verifier = null;
         String holdRef = null;
-        String priorStatus = null;
         String releasedTo = null;
         switch (entry) {
             case AccountCreated _, AccountBlocked _, AccountUnblocked _ -> {
@@ -81,10 +80,7 @@ public final class EventMapper {
                 paymentId = r.paymentId().value();
                 verifier = r.verifier();
             }
-            case AccountHeld h -> {
-                holdRef = h.holdRef();
-                priorStatus = h.priorStatus().name();
-            }
+            case AccountHeld h -> holdRef = h.holdRef();
             case AccountReleased r -> releasedTo = r.releasedTo().name();
         }
         var meta = entry.meta();
@@ -95,7 +91,7 @@ public final class EventMapper {
                 entry.type().wire(),
                 meta.recordedAt(),
                 meta.balanceAfter(),
-                meta.actor().wire(),
+                meta.actor().name(),
                 meta.reason(),
                 paymentId,
                 amount == null ? null : amount.amountMinor(),
@@ -105,7 +101,6 @@ public final class EventMapper {
                 beneficiary,
                 verifier,
                 holdRef,
-                priorStatus,
                 releasedTo);
     }
 

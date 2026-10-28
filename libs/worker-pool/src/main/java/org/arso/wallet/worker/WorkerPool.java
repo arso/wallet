@@ -56,25 +56,38 @@ public final class WorkerPool implements Runnable {
     private record Completion(TopicPartition tp, long offset, boolean done) {
     }
 
+    // used by the poll thread only, except wakeup() from stop()
     private final KafkaConsumer<String, byte[]> consumer;
     private final KafkaClientMetrics consumerMetrics;
     private final WorkerSettings settings;
+    // runs the handler with retries and holds
     private final FailurePolicy policy;
+    // state per assigned partition, poll thread only
     private final Map<TopicPartition, Partition> partitions = new HashMap<>();
+    // assigned partitions, read by workers to skip records of a revoked partition
     private final Set<TopicPartition> owned = ConcurrentHashMap.newKeySet();
+    // workers report finished records here; the poll thread drains it
     private final ConcurrentLinkedQueue<Completion> completions = new ConcurrentLinkedQueue<>();
+    // records due for another look (RecheckAt), filled by the timer
     private final ConcurrentLinkedQueue<ConsumerRecord<String, byte[]>> rechecks = new ConcurrentLinkedQueue<>();
+    // one virtual thread per record (UNORDERED, DELAYED) or per keyed worker (KEYED)
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    // schedules rechecks
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().factory());
+    // caps records in flight in UNORDERED and DELAYED modes
     private final Semaphore permits;
+    // KEYED mode: one bounded queue per worker; a key always maps to the same queue, keeping its order
     private final List<BlockingQueue<ConsumerRecord<String, byte[]>>> queues = new ArrayList<>();
+    // gauge values, written by the poll thread
     private final AtomicLong oldestOpenMillis = new AtomicLong();
     private final AtomicLong inFlight = new AtomicLong();
     private final AtomicLong queueDepth = new AtomicLong();
     private final Map<Pause, AtomicLong> pausedPartitions = new EnumMap<>(Pause.class);
     private final ObservationRegistry observations;
+    // cleared by stop() to end the poll loop
     private volatile boolean running = true;
     private Thread poller;
+    // set from outside (the executor's circuit breaker); pauses every partition while true
     private volatile boolean circuitOpen;
 
     public WorkerPool(
@@ -186,8 +199,10 @@ public final class WorkerPool implements Runnable {
                 }
                 drainCompletions();
                 dispatchRechecks();
-                partitions.values().forEach(this::dispatch);
-                partitions.values().forEach(this::updatePause);
+                partitions.values().forEach(p -> {
+                    dispatch(p);
+                    updatePause(p);
+                });
                 commit(false);
                 updateGauges();
             }
@@ -201,6 +216,7 @@ public final class WorkerPool implements Runnable {
     }
 
     private void dispatch(Partition p) {
+        // re-evaluated on every pass: the loop below adds them back only if they still block the head record
         p.reasons.remove(Pause.NOT_DUE);
         p.reasons.remove(Pause.BACKPRESSURE);
         var now = Instant.now();
@@ -217,18 +233,11 @@ public final class WorkerPool implements Runnable {
             p.pending.poll();
             p.inFlight++;
         }
-        if (p.uncommitted() > settings.maxUncommitted()) {
-            p.reasons.add(Pause.UNCOMMITTED_CAP);
-        } else {
-            p.reasons.remove(Pause.UNCOMMITTED_CAP);
-        }
-        if (circuitOpen) {
-            p.reasons.add(Pause.CIRCUIT_OPEN);
-        } else {
-            p.reasons.remove(Pause.CIRCUIT_OPEN);
-        }
+        p.pauseWhile(Pause.UNCOMMITTED_CAP, p.uncommitted() > settings.maxUncommitted());
+        p.pauseWhile(Pause.CIRCUIT_OPEN, circuitOpen);
     }
 
+    // records whose handler asked for a later look (RecheckAt); kept off pending so they never block the partition
     private void dispatchRechecks() {
         for (var record = rechecks.peek(); record != null; record = rechecks.peek()) {
             var p = partitions.get(new TopicPartition(record.topic(), record.partition()));

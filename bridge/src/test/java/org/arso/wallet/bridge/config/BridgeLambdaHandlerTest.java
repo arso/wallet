@@ -74,7 +74,7 @@ class BridgeLambdaHandlerTest {
                 Map.entry("event_type", s("deposit")),
                 Map.entry("recorded_at", s("2026-10-26T12:00:00.123Z")),
                 Map.entry("balance_after", n(500)),
-                Map.entry("actor", s("user")),
+                Map.entry("actor", s("USER")),
                 Map.entry("amount", n(500)),
                 Map.entry("currency", s("USD")),
                 Map.entry("external_tx_id", s("prov-" + seq)),

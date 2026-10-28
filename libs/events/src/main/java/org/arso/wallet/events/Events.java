@@ -13,7 +13,7 @@ public final class Events {
     public static final String EVENT_TYPE_HEADER = "event_type";
     public static final String JSON = "application/json";
 
-    public static final String WITHDRAW = "withdraw";
+    public static final String DEPOSIT = "deposit";
     public static final String ACCOUNT_HELD = "account_held";
     public static final String ACCOUNT_RELEASED = "account_released";
 

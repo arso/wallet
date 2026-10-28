@@ -17,6 +17,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Kafka producer whose send blocks until all in-sync replicas have the record ({@code acks=all}, idempotent). A handler
+ * that publishes returns only after the send is acked, so the worker pool commits the input offset only once the output
+ * is safe: a crash re-processes the input instead of losing the message. Blocking is cheap on virtual threads.
+ */
 public final class AckedProducer implements AutoCloseable {
 
     private final KafkaProducer<String, byte[]> producer;

@@ -3,6 +3,17 @@ package org.arso.wallet.ledger.domain;
 import java.security.SecureRandom;
 import java.util.regex.Pattern;
 
+/**
+ * ULID (Universally Unique Lexicographically Sortable Identifier) ids for accounts, payments and messages:
+ * 48-bit millisecond time, then 80 random bits, in 26 Crockford base32 characters.
+ * <p>
+ * ULID, not UUID: ids sort by creation time, so an id shows roughly when it was made, and they are shorter (26 chars, no
+ * hyphens) and URL-safe. The JDK's {@code UUID.randomUUID()} is fully random (v4) and gives no order.
+ * DynamoDB hashes the whole key, so the shared time prefix does not create hot partitions.
+ * <p>
+ * In house, not a library: the generator is a few lines, the project needs no monotonic or binary forms, and it saves
+ * a dependency. Ids made in the same millisecond do not sort among themselves.
+ */
 public final class Ulid {
 
     private static final char[] ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();

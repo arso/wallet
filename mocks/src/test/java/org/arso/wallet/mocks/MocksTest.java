@@ -158,8 +158,8 @@ class MocksTest {
     }
 
     void ledgerEvent(String account, long seq, String type, Long amount, String externalTxId, String releasedTo) {
-        send(Events.LEDGER_EVENTS, account, new LedgerEvent(1, account, seq, type, Instant.now(), 0, "user", null, null,
-                amount, amount == null ? null : "USD", externalTxId, null, null, null, null, null, releasedTo));
+        send(Events.LEDGER_EVENTS, account, new LedgerEvent(1, account, seq, type, Instant.now(), 0, "USER", null, null,
+                amount, amount == null ? null : "USD", externalTxId, null, null, null, null, releasedTo));
     }
 
     static void send(String topic, String key, Object message) {

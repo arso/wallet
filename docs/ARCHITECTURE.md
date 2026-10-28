@@ -184,7 +184,7 @@ Ledger entry:
   "PK": "01JB8Z5X3K9QH2M7RYT4VWD6NC", "SK": "LEDGER#000000000003",
   "account_id": "01JB8Z5X3K9QH2M7RYT4VWD6NC", "seq": 3,
   "event_type": "withdraw", "recorded_at": "2026-10-27T10:05:00.000Z",
-  "balance_after": 7000, "actor": "user",
+  "balance_after": 7000, "actor": "USER",
   "amount": 3000, "currency": "USD", "payment_id": "01JB8ZC4R1T6E9P3XQ0M2KJHAB",
   "beneficiary": {"beneficiary_id": "b-1", "name": "Jane", "account_masked": "****9876",
                   "account_fingerprint": "hmac:2", "country": "DE"}
@@ -291,10 +291,10 @@ All payloads are JSON with `schema_version: 1`.
 | `withdraw_completed` | `payment_id, external_tx_id` |
 | `user_cancel_withdraw` | `amount, currency, payment_id` |
 | `reject_withdraw` | `amount, currency, payment_id, verifier?`, with the reject reason in `reason` |
-| `account_held` | `hold_ref, prior_status` |
+| `account_held` | `hold_ref` |
 | `account_released` | `released_to` |
 
-`actor` is one of `user, completion-service, transfer-executor, timeout-checker, bridge, aml, internal`.
+`actor` is one of `USER, COMPLETION_SERVICE, TRANSFER_EXECUTOR, TIMEOUT_CHECKER, BRIDGE, AML, INTERNAL`.
 
 `ledger-events` (`event_type: withdraw`):
 
@@ -302,7 +302,7 @@ All payloads are JSON with `schema_version: 1`.
 {
   "schema_version": 1, "account_id": "01JB8Z5X3K9QH2M7RYT4VWD6NC", "seq": 3,
   "event_type": "withdraw", "recorded_at": "2026-10-27T10:05:00.000Z",
-  "balance_after": 7000, "actor": "user",
+  "balance_after": 7000, "actor": "USER",
   "payment_id": "01JB8ZC4R1T6E9P3XQ0M2KJHAB", "amount": 3000, "currency": "USD",
   "beneficiary": {"beneficiary_id": "b-1", "name": "Jane", "account_masked": "****9876",
                   "account_fingerprint": "hmac:2", "country": "DE"}

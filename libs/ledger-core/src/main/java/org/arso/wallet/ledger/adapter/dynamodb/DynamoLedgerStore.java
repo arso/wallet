@@ -69,7 +69,8 @@ public final class DynamoLedgerStore implements LedgerStore {
     }
 
     private Payment setStep(PaymentId id, String step, Verification verification, boolean open) {
-        var condition = "attribute_exists(PK) AND attribute_not_exists(#vf.#st)" + (open ? " AND #s IN (:pending, :executing)" : "");
+        // payment exists and the step has no result yet (first one wins); when open, also only while the payment is not final
+        var condition = "attribute_exists(PK) AND attribute_not_exists(#vf.#st)" + (open ?" AND #s IN (:pending, :executing)" : "");
         var names = new HashMap<>(Map.of("#vf", "verifications", "#st", step));
         var values = new HashMap<>(Map.of(":v", AttributeValue.fromM(Items.verification(verification))));
         if (open) {
@@ -156,12 +157,17 @@ public final class DynamoLedgerStore implements LedgerStore {
 
     private TransactWriteItem write(TxItem item) {
         return switch (item) {
+            // optimistic lock: a new account must not exist, otherwise the stored version must be the one we read
             case PutAccount(var account) -> account.version() == 1
                     ? put(Items.account(account), NOT_EXISTS, Map.of(), Map.of())
                     : put(Items.account(account), "#v = :v", Map.of("#v", "version"), Map.of(":v", num(account.version() - 1)));
+            // ledger is append-only: a taken seq means another writer got there first
             case PutEntry(var entry) -> put(Items.entry(entry), NOT_EXISTS, Map.of(), Map.of());
+            // a payment is created once
             case PutPayment(var payment) -> put(Items.payment(payment), NOT_EXISTS, Map.of(), Map.of());
+            // status transition, only from the expected status
             case UpdatePayment update -> TransactWriteItem.builder().update(update(update)).build();
+            // writes nothing; fails the whole transaction unless the account is ACTIVE (e.g. blocked by AML meanwhile)
             case CheckAccountActive(var id) -> TransactWriteItem.builder()
                     .conditionCheck(ConditionCheck.builder()
                             .tableName(table)
@@ -169,14 +175,17 @@ public final class DynamoLedgerStore implements LedgerStore {
                             .conditionExpression("#s = :active")
                             .expressionAttributeNames(Map.of("#s", "status"))
                             .expressionAttributeValues(Map.of(":active", str(AccountStatus.ACTIVE.name())))
+                            // the current account comes back in the cancellation reason, to decide the outcome without a read
                             .returnValuesOnConditionCheckFailure(ALL_OLD)
                             .build())
                     .build();
+            // TTL deletes expired items lazily (up to days later), so an expired response may be overwritten
             case PutResponse(var key, var response, var now) -> put(
                     Items.response(key, response, now, idempotencyTtl),
                     NOT_EXISTS + " OR #t < :now",
                     Map.of("#t", "ttl"),
                     Map.of(":now", num(now.getEpochSecond())));
+            // one deposit per external_tx_id
             case PutDeposit(var deposit, var now) -> put(Items.deposit(deposit, now), NOT_EXISTS, Map.of(), Map.of());
         };
     }
@@ -193,6 +202,7 @@ public final class DynamoLedgerStore implements LedgerStore {
         setIfPresent(set, values, "reject_reason", p.rejectReason() == null ? null : p.rejectReason().name());
         setIfPresent(set, values, "external_tx_id", p.externalTxId());
         var condition = new StringBuilder("#s = :expected");
+        // moving to EXECUTING also requires every required step to be allowed in the stored item, not only in our copy
         if (update.requireAllowedSteps() && !p.requiredSteps().isEmpty()) {
             names.put("#vf", "verifications");
             values.put(":true", AttributeValue.fromBool(true));

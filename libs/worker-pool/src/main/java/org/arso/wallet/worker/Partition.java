@@ -9,6 +9,14 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.TreeMap;
 
+/**
+ * State of one assigned partition, owned by the poll thread (workers report back through {@code completions}).
+ * <p>
+ * Records finish out of order, but Kafka keeps one committed offset per partition. So every polled offset stays open
+ * until done, and the safe commit {@link #position()} is the lowest open offset: a crash re-processes unfinished
+ * records and never skips one. It also holds polled records not yet dispatched ({@code pending}) and why the partition
+ * is paused; it stays paused while any reason remains.
+ */
 final class Partition {
 
     enum Pause {
@@ -32,6 +40,14 @@ final class Partition {
 
     Partition(TopicPartition tp) {
         this.tp = tp;
+    }
+
+    void pauseWhile(Pause reason, boolean active) {
+        if (active) {
+            reasons.add(reason);
+        } else {
+            reasons.remove(reason);
+        }
     }
 
     void polled(ConsumerRecord<String, byte[]> record, Instant due, long nowMillis) {

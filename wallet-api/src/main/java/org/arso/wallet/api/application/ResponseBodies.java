@@ -94,7 +94,7 @@ public final class ResponseBodies {
         out.put("event_type", e.type().wire());
         out.put("recorded_at", format(m.recordedAt()));
         out.put("balance_after", m.balanceAfter());
-        out.put("actor", m.actor().wire());
+        out.put("actor", m.actor().name());
         if (m.reason() != null) {
             out.put("reason", m.reason());
         }

@@ -11,6 +11,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.WARNING;
 
+/**
+ * Runs the handler for one record and decides what a failure means, so a bad record never blocks its partition and
+ * nothing is silently dropped. By {@link ErrorClassifier} kind: transient errors (outages, throttling) are retried with
+ * backoff until they pass; permanent ones put the account on hold at once; unknown ones (bugs) get a retry budget, then
+ * a hold. A held record is marked done. Returns {@code null} when interrupted, leaving the record uncommitted.
+ */
 final class FailurePolicy {
 
     private static final System.Logger LOG = System.getLogger(FailurePolicy.class.getName());

@@ -149,7 +149,7 @@ final class Items {
                 .s("event_type", e.type().wire())
                 .s("recorded_at", format(meta.recordedAt()))
                 .n("balance_after", meta.balanceAfter())
-                .s("actor", meta.actor().wire())
+                .s("actor", meta.actor().name())
                 .s("reason", meta.reason());
         switch (e) {
             case AccountCreated _, AccountBlocked _, AccountUnblocked _ -> {
@@ -176,7 +176,7 @@ final class Items {
                 n(m, "seq"),
                 parse(s(m, "recorded_at")),
                 n(m, "balance_after"),
-                Actor.fromWire(s(m, "actor")),
+                Actor.valueOf(s(m, "actor")),
                 s(m, "reason"));
         return switch (LedgerEventType.fromWire(s(m, "event_type"))) {
             case ACCOUNT_CREATED -> new AccountCreated(meta);

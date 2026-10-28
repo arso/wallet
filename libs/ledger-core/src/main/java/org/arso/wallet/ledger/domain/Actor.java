@@ -7,13 +7,5 @@ public enum Actor {
     TIMEOUT_CHECKER,
     BRIDGE,
     AML,
-    INTERNAL;
-
-    public String wire() {
-        return name().toLowerCase().replace('_', '-');
-    }
-
-    public static Actor fromWire(String value) {
-        return valueOf(value.toUpperCase().replace('-', '_'));
-    }
+    INTERNAL
 }

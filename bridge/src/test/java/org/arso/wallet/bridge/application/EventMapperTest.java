@@ -26,8 +26,8 @@ class EventMapperTest {
             assertThat(m.topic()).isEqualTo(Events.LEDGER_EVENTS);
             assertThat(m.key()).isEqualTo(ACCOUNT.value());
             assertThat(m.headers()).containsEntry("event_type", "deposit").containsEntry("content-type", "application/json");
-            assertThat(m.payload()).isEqualTo(new LedgerEvent(1, ACCOUNT.value(), 2, "deposit", AT, 10000, "user", null, null,
-                    10000L, "USD", "prov-1", new Payer("x-1", "John", "****1234", "hmac:1", "PL"), null, null, null, null,
+            assertThat(m.payload()).isEqualTo(new LedgerEvent(1, ACCOUNT.value(), 2, "deposit", AT, 10000, "USER", null, null,
+                    10000L, "USD", "prov-1", new Payer("x-1", "John", "****1234", "hmac:1", "PL"), null, null, null,
                     null));
         });
     }
@@ -53,7 +53,7 @@ class EventMapperTest {
         var event = EventMapper.ledgerEvent(entry);
 
         assertThat(event.eventType()).isEqualTo("reject_withdraw");
-        assertThat(event.actor()).isEqualTo("completion-service");
+        assertThat(event.actor()).isEqualTo("COMPLETION_SERVICE");
         assertThat(event.reason()).isEqualTo("VERIFICATION_REJECTED");
         assertThat(event.verifier()).isEqualTo("aml");
         assertThat(event.paymentId()).isEqualTo(PAYMENT.value());
@@ -67,7 +67,6 @@ class EventMapperTest {
 
         assertThat(held.eventType()).isEqualTo(Events.ACCOUNT_HELD);
         assertThat(held.holdRef()).isEqualTo("ledger/x/4");
-        assertThat(held.priorStatus()).isEqualTo("BLOCKED");
         assertThat(released.eventType()).isEqualTo(Events.ACCOUNT_RELEASED);
         assertThat(released.releasedTo()).isEqualTo("ACTIVE");
         assertThat(released.amount()).isNull();
