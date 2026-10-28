@@ -6,33 +6,7 @@ import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.transport.ReceiverContext;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -42,6 +16,13 @@ import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.worker.Partition.Pause;
 import org.arso.wallet.worker.RecordHandler.Outcome;
 import org.arso.wallet.worker.WorkerSettings.Mode;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Kafka consumer that processes records of one partition in parallel (spec 8.4, plan phase 5).
@@ -72,7 +53,8 @@ import org.arso.wallet.worker.WorkerSettings.Mode;
  */
 public final class WorkerPool implements Runnable {
 
-    private record Completion(TopicPartition tp, long offset, boolean done) {}
+    private record Completion(TopicPartition tp, long offset, boolean done) {
+    }
 
     private final KafkaConsumer<String, byte[]> consumer;
     private final KafkaClientMetrics consumerMetrics;
@@ -105,7 +87,9 @@ public final class WorkerPool implements Runnable {
         this(consumerConfig, settings, handler, classifier, holds, meters, ObservationRegistry.NOOP);
     }
 
-    /** Each record is processed in an observation that continues the trace from its {@code traceparent} header. */
+    /**
+     * Each record is processed in an observation that continues the trace from its {@code traceparent} header.
+     */
     public WorkerPool(
             Map<String, Object> consumerConfig,
             WorkerSettings settings,

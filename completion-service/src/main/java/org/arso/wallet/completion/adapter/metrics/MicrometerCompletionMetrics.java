@@ -2,8 +2,9 @@ package org.arso.wallet.completion.adapter.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.time.Duration;
 import org.arso.wallet.completion.port.CompletionMetrics;
+
+import java.time.Duration;
 
 public final class MicrometerCompletionMetrics implements CompletionMetrics {
 

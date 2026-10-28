@@ -2,7 +2,8 @@ package org.arso.wallet.bridge.config;
 
 final class Env {
 
-    private Env() {}
+    private Env() {
+    }
 
     static String get(String name, String fallback) {
         var value = System.getenv(name);

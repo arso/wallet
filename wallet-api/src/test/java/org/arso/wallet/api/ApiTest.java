@@ -1,8 +1,6 @@
 package org.arso.wallet.api;
 
 import com.jayway.jsonpath.JsonPath;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 import org.arso.wallet.testing.DynamoDbLocal;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +12,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.test.web.servlet.client.RestTestClient.BodyContentSpec;
 import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
+
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @SpringBootTest(classes = WalletApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 abstract class ApiTest {

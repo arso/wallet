@@ -1,7 +1,6 @@
 package org.arso.wallet.api.config;
 
 import io.micrometer.observation.ObservationRegistry;
-import java.time.Clock;
 import org.arso.wallet.api.adapter.beneficiary.HttpBeneficiaryLookup;
 import org.arso.wallet.api.application.ApiErrors;
 import org.arso.wallet.api.application.Idempotency;
@@ -16,6 +15,8 @@ import org.arso.wallet.ledger.port.LedgerStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
 public class ApplicationConfig {

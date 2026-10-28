@@ -1,10 +1,5 @@
 package org.arso.wallet.executor.application;
 
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_TRANSFER;
-import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
-import static org.arso.wallet.ledger.domain.RejectReason.EXECUTION_FAILED;
-
 import org.arso.wallet.executor.port.TransferService;
 import org.arso.wallet.executor.port.TransferService.Result.Rejected;
 import org.arso.wallet.executor.port.TransferService.Result.Sent;
@@ -15,7 +10,14 @@ import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.port.LedgerStore;
 
-/** Transfer executor (spec 8.5, plan phase 8). Trusts a consistent read of the payment, never the message. */
+import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
+import static org.arso.wallet.ledger.application.CrashPoint.AFTER_TRANSFER;
+import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
+import static org.arso.wallet.ledger.domain.RejectReason.EXECUTION_FAILED;
+
+/**
+ * Transfer executor (spec 8.5, plan phase 8). Trusts a consistent read of the payment, never the message.
+ */
 public final class Executor {
 
     private final LedgerStore store;

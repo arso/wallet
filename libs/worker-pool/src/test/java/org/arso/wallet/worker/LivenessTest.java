@@ -1,14 +1,15 @@
 package org.arso.wallet.worker;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.arso.wallet.worker.RecordHandler.Outcome;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
 import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class LivenessTest extends PoolTest {
 

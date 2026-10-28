@@ -2,7 +2,6 @@ package org.arso.wallet.timeout.adapter.kafka;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.nio.charset.StandardCharsets;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.arso.wallet.events.Events;
@@ -12,6 +11,8 @@ import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.Ulid;
 import org.arso.wallet.timeout.port.TransferPublisher;
 import org.arso.wallet.worker.AckedProducer;
+
+import java.nio.charset.StandardCharsets;
 
 public final class KafkaTransferPublisher implements TransferPublisher {
 

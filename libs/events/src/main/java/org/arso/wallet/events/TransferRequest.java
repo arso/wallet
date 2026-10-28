@@ -3,7 +3,8 @@ package org.arso.wallet.events;
 import java.util.Objects;
 
 public record TransferRequest(
-        String eventId, int schemaVersion, String paymentId, String accountId, long amount, String currency, String beneficiaryId) {
+        String eventId, int schemaVersion, String paymentId, String accountId, long amount, String currency,
+        String beneficiaryId) {
 
     public TransferRequest {
         Objects.requireNonNull(eventId, "event_id");

@@ -1,7 +1,10 @@
 package org.arso.wallet.ledger.adapter.dynamodb;
 
-import static org.arso.wallet.ledger.domain.Timestamps.format;
-import static org.arso.wallet.ledger.domain.Timestamps.parse;
+import org.arso.wallet.ledger.domain.*;
+import org.arso.wallet.ledger.domain.LedgerEntry.*;
+import org.arso.wallet.ledger.port.DepositRecord;
+import org.arso.wallet.ledger.port.StoredResponse;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -10,34 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.arso.wallet.ledger.domain.Account;
-import org.arso.wallet.ledger.domain.AccountId;
-import org.arso.wallet.ledger.domain.AccountStatus;
-import org.arso.wallet.ledger.domain.Actor;
-import org.arso.wallet.ledger.domain.Counterparty;
-import org.arso.wallet.ledger.domain.Currency;
-import org.arso.wallet.ledger.domain.LedgerEntry;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountBlocked;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountCreated;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountHeld;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountReleased;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountUnblocked;
-import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
-import org.arso.wallet.ledger.domain.LedgerEntry.Meta;
-import org.arso.wallet.ledger.domain.LedgerEntry.UserCancelledWithdraw;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawCompleted;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.LedgerEntry.Withdrawn;
-import org.arso.wallet.ledger.domain.LedgerEventType;
-import org.arso.wallet.ledger.domain.Money;
-import org.arso.wallet.ledger.domain.Payment;
-import org.arso.wallet.ledger.domain.PaymentId;
-import org.arso.wallet.ledger.domain.PaymentStatus;
-import org.arso.wallet.ledger.domain.RejectReason;
-import org.arso.wallet.ledger.domain.Verification;
-import org.arso.wallet.ledger.port.DepositRecord;
-import org.arso.wallet.ledger.port.StoredResponse;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+
+import static org.arso.wallet.ledger.domain.Timestamps.format;
+import static org.arso.wallet.ledger.domain.Timestamps.parse;
 
 final class Items {
 
@@ -47,7 +25,8 @@ final class Items {
     static final String IDEMPOTENCY = "IDEMPOTENCY#";
     static final String DEPOSIT = "DEPOSIT#";
 
-    private Items() {}
+    private Items() {
+    }
 
     static Map<String, AttributeValue> key(String pk, String sk) {
         return Map.of("PK", str(pk), "SK", str(sk));
@@ -173,7 +152,8 @@ final class Items {
                 .s("actor", meta.actor().wire())
                 .s("reason", meta.reason());
         switch (e) {
-            case AccountCreated _, AccountBlocked _, AccountUnblocked _ -> {}
+            case AccountCreated _, AccountBlocked _, AccountUnblocked _ -> {
+            }
             case Deposited d -> b.money(d.amount())
                     .s("external_tx_id", d.externalTxId())
                     .put("payer", map(counterparty(d.payer(), "payer_id")));
@@ -182,7 +162,8 @@ final class Items {
                     .put("beneficiary", map(counterparty(w.beneficiary(), "beneficiary_id")));
             case WithdrawCompleted c -> b.s("payment_id", c.paymentId().value()).s("external_tx_id", c.externalTxId());
             case UserCancelledWithdraw c -> b.money(c.amount()).s("payment_id", c.paymentId().value());
-            case WithdrawRejected r -> b.money(r.amount()).s("payment_id", r.paymentId().value()).s("verifier", r.verifier());
+            case WithdrawRejected r ->
+                    b.money(r.amount()).s("payment_id", r.paymentId().value()).s("verifier", r.verifier());
             case AccountHeld h -> b.s("hold_ref", h.holdRef()).s("prior_status", h.priorStatus().name());
             case AccountReleased r -> b.s("released_to", r.releasedTo().name());
         }
@@ -199,7 +180,8 @@ final class Items {
                 s(m, "reason"));
         return switch (LedgerEventType.fromWire(s(m, "event_type"))) {
             case ACCOUNT_CREATED -> new AccountCreated(meta);
-            case DEPOSIT -> new Deposited(meta, money(m), s(m, "external_tx_id"), counterparty(m.get("payer").m(), "payer_id"));
+            case DEPOSIT ->
+                    new Deposited(meta, money(m), s(m, "external_tx_id"), counterparty(m.get("payer").m(), "payer_id"));
             case WITHDRAW -> new Withdrawn(
                     meta, money(m), paymentId(m), counterparty(m.get("beneficiary").m(), "beneficiary_id"));
             case WITHDRAW_COMPLETED -> new WithdrawCompleted(meta, paymentId(m), s(m, "external_tx_id"));

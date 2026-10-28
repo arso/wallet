@@ -1,11 +1,12 @@
 package org.arso.wallet.mocks.application;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.events.LedgerEvent;
 import org.arso.wallet.mocks.port.WalletAdmin;
 import org.arso.wallet.mocks.port.WalletAdmin.Result;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AmlMonitor {
 
@@ -41,7 +42,8 @@ public final class AmlMonitor {
                     apply(event.accountId(), wanted, "applied after release", key);
                 }
             }
-            default -> {}
+            default -> {
+            }
         }
     }
 

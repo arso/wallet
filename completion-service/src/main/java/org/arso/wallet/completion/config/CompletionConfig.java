@@ -2,11 +2,9 @@ package org.arso.wallet.completion.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
-import java.time.Clock;
-import java.util.Map;
 import org.arso.wallet.completion.adapter.kafka.KafkaTransferPublisher;
-import org.arso.wallet.completion.adapter.metrics.MicrometerCompletionMetrics;
 import org.arso.wallet.completion.adapter.kafka.VerificationResultHandler;
+import org.arso.wallet.completion.adapter.metrics.MicrometerCompletionMetrics;
 import org.arso.wallet.completion.application.Completion;
 import org.arso.wallet.completion.port.TransferPublisher;
 import org.arso.wallet.events.Events;
@@ -25,6 +23,9 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
+import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
 public class CompletionConfig {

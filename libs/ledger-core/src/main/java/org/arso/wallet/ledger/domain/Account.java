@@ -1,31 +1,15 @@
 package org.arso.wallet.ledger.domain;
 
-import static org.arso.wallet.ledger.domain.AccountStatus.ACTIVE;
-import static org.arso.wallet.ledger.domain.AccountStatus.BLOCKED;
-import static org.arso.wallet.ledger.domain.AccountStatus.ON_HOLD;
-import static org.arso.wallet.ledger.domain.DomainException.Code.ACCOUNT_BLOCKED;
-import static org.arso.wallet.ledger.domain.DomainException.Code.ACCOUNT_NOT_ON_HOLD;
-import static org.arso.wallet.ledger.domain.DomainException.Code.ACCOUNT_ON_HOLD;
-import static org.arso.wallet.ledger.domain.DomainException.Code.CONFIRM_REQUIRED;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_TRANSITION;
+import org.arso.wallet.ledger.domain.LedgerEntry.*;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountBlocked;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountCreated;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountHeld;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountReleased;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountUnblocked;
-import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
-import org.arso.wallet.ledger.domain.LedgerEntry.Meta;
-import org.arso.wallet.ledger.domain.LedgerEntry.UserCancelledWithdraw;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawCompleted;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.LedgerEntry.Withdrawn;
+
+import static org.arso.wallet.ledger.domain.AccountStatus.*;
+import static org.arso.wallet.ledger.domain.DomainException.Code.*;
 
 public record Account(
         AccountId id,
@@ -37,7 +21,8 @@ public record Account(
         Instant createdAt,
         Instant updatedAt) {
 
-    public record Change(Account account, LedgerEntry entry) {}
+    public record Change(Account account, LedgerEntry entry) {
+    }
 
     public Account {
         holdRefs = Set.copyOf(holdRefs);

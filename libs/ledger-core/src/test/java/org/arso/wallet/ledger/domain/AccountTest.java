@@ -1,26 +1,18 @@
 package org.arso.wallet.ledger.domain;
 
-import static org.arso.wallet.ledger.domain.AccountStatus.ACTIVE;
-import static org.arso.wallet.ledger.domain.AccountStatus.BLOCKED;
-import static org.arso.wallet.ledger.domain.AccountStatus.ON_HOLD;
-import static org.arso.wallet.ledger.domain.DomainException.Code.ACCOUNT_BLOCKED;
-import static org.arso.wallet.ledger.domain.DomainException.Code.ACCOUNT_NOT_ON_HOLD;
-import static org.arso.wallet.ledger.domain.DomainException.Code.ACCOUNT_ON_HOLD;
-import static org.arso.wallet.ledger.domain.DomainException.Code.CONFIRM_REQUIRED;
-import static org.arso.wallet.ledger.domain.DomainException.Code.CURRENCY_MISMATCH;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INSUFFICIENT_FUNDS;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_AMOUNT;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_TRANSITION;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.time.Instant;
-import java.util.Set;
 import org.arso.wallet.ledger.domain.LedgerEntry.AccountHeld;
 import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
 import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
+
+import java.time.Instant;
+import java.util.Set;
+
+import static org.arso.wallet.ledger.domain.AccountStatus.*;
+import static org.arso.wallet.ledger.domain.DomainException.Code.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AccountTest {
 

@@ -9,7 +9,8 @@ public final class Ulid {
     private static final Pattern FORMAT = Pattern.compile("[0-7][0-9A-HJKMNP-TV-Z]{25}");
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private Ulid() {}
+    private Ulid() {
+    }
 
     public static String next() {
         var out = new char[26];

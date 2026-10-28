@@ -1,7 +1,5 @@
 package org.arso.wallet.ledger.adapter.dynamodb;
 
-import java.net.URI;
-import java.util.List;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
@@ -9,9 +7,13 @@ import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+import java.net.URI;
+import java.util.List;
+
 public final class DynamoDbClients {
 
-    private DynamoDbClients() {}
+    private DynamoDbClients() {
+    }
 
     public static DynamoDbClient create(
             URI endpoint, String region, int maxConnections, ExecutionInterceptor... interceptors) {

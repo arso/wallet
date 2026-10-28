@@ -1,7 +1,5 @@
 package org.arso.wallet.timeout.adapter.kafka;
 
-import java.time.Duration;
-import java.time.Instant;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.events.WithdrawRequest;
@@ -11,6 +9,9 @@ import org.arso.wallet.ledger.domain.Ulid;
 import org.arso.wallet.timeout.application.TimeoutChecker;
 import org.arso.wallet.worker.PermanentRecordException;
 import org.arso.wallet.worker.RecordHandler;
+
+import java.time.Duration;
+import java.time.Instant;
 
 public final class WithdrawRequestHandler implements RecordHandler {
 
@@ -22,7 +23,9 @@ public final class WithdrawRequestHandler implements RecordHandler {
         this.timeout = timeout;
     }
 
-    /** Due time of a record; a record that cannot be read is due now and fails in {@link #handle}. */
+    /**
+     * Due time of a record; a record that cannot be read is due now and fails in {@link #handle}.
+     */
     public Instant dueAt(ConsumerRecord<String, byte[]> record) {
         return EventJson.read(record.value(), WithdrawRequest.class).requestedAt().plus(timeout);
     }

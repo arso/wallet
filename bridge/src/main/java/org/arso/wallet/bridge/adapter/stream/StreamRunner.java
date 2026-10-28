@@ -1,14 +1,5 @@
 package org.arso.wallet.bridge.adapter.stream;
 
-import static java.lang.System.Logger.Level.INFO;
-import static java.lang.System.Logger.Level.WARNING;
-
-import java.time.Duration;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.arso.wallet.bridge.application.Bridge;
 import org.arso.wallet.ledger.adapter.dynamodb.LedgerItems;
 import org.arso.wallet.ledger.domain.LedgerEntry;
@@ -18,10 +9,19 @@ import software.amazon.awssdk.services.dynamodb.model.Record;
 import software.amazon.awssdk.services.dynamodb.model.ShardIteratorType;
 import software.amazon.awssdk.services.dynamodb.streams.DynamoDbStreamsClient;
 
-/** Local stand-in for the Lambda event source mapping, on DynamoDB Local. Not for production. */
+import java.time.Duration;
+import java.util.*;
+
+import static java.lang.System.Logger.Level.INFO;
+import static java.lang.System.Logger.Level.WARNING;
+
+/**
+ * Local stand-in for the Lambda event source mapping, on DynamoDB Local. Not for production.
+ */
 public final class StreamRunner implements Runnable {
 
-    public record Settings(ShardIteratorType startAt, Duration idleWait, Duration retryWait) {}
+    public record Settings(ShardIteratorType startAt, Duration idleWait, Duration retryWait) {
+    }
 
     private static final System.Logger LOG = System.getLogger(StreamRunner.class.getName());
 

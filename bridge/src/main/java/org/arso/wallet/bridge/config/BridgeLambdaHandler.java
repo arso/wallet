@@ -3,10 +3,11 @@ package org.arso.wallet.bridge.config;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent;
-import java.util.Map;
 import org.arso.wallet.bridge.adapter.kafka.KafkaEventPublisher;
 import org.arso.wallet.bridge.adapter.lambda.DynamodbEvents;
 import org.arso.wallet.bridge.application.Bridge;
+
+import java.util.Map;
 
 // TODO(later): Lambda packaging, event source mapping with FilterCriteria (plan 5.6, 8).
 public final class BridgeLambdaHandler implements RequestHandler<DynamodbEvent, Void> {

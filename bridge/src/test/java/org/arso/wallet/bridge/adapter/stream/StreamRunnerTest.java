@@ -1,14 +1,5 @@
 package org.arso.wallet.bridge.adapter.stream;
 
-import static org.arso.wallet.bridge.RecordingPublisher.ledgerSeq;
-import static org.arso.wallet.bridge.RecordingPublisher.ledgerSeqs;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BooleanSupplier;
 import org.arso.wallet.bridge.RecordingPublisher;
 import org.arso.wallet.bridge.application.Bridge;
 import org.arso.wallet.events.Events;
@@ -19,6 +10,16 @@ import org.arso.wallet.testing.TestLedger;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ShardIteratorType;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BooleanSupplier;
+
+import static org.arso.wallet.bridge.RecordingPublisher.ledgerSeq;
+import static org.arso.wallet.bridge.RecordingPublisher.ledgerSeqs;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class StreamRunnerTest {
 

@@ -1,10 +1,11 @@
 package org.arso.wallet.worker;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.arso.wallet.ledger.domain.Actor;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.function.Function;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.arso.wallet.ledger.domain.Actor;
 
 public record WorkerSettings(
         String service,

@@ -1,7 +1,5 @@
 package org.arso.wallet.worker;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.errors.SerializationException;
@@ -11,6 +9,9 @@ import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
 import tools.jackson.core.JacksonException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ErrorClassifier {
 

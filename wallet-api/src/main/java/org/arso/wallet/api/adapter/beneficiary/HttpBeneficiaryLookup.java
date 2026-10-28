@@ -1,10 +1,6 @@
 package org.arso.wallet.api.adapter.beneficiary;
 
 import io.micrometer.observation.ObservationRegistry;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.time.Duration;
-import java.util.Optional;
 import org.arso.wallet.api.port.BeneficiaryLookup;
 import org.arso.wallet.api.port.BeneficiaryUnavailableException;
 import org.arso.wallet.ledger.domain.Counterparty;
@@ -17,10 +13,17 @@ import org.springframework.web.client.RestClientException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.Optional;
+
 // TODO: cap concurrent calls to the beneficiary service (spec 4, virtual threads notes).
 public final class HttpBeneficiaryLookup implements BeneficiaryLookup {
 
-    record Beneficiary(String beneficiaryId, String name, String accountMasked, String accountFingerprint, String country) {}
+    record Beneficiary(String beneficiaryId, String name, String accountMasked, String accountFingerprint,
+                       String country) {
+    }
 
     private final RestClient client;
     private final JsonMapper mapper;

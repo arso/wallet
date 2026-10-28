@@ -1,14 +1,5 @@
 package org.arso.wallet.bridge.application;
 
-import static org.arso.wallet.events.Events.CONTENT_TYPE_HEADER;
-import static org.arso.wallet.events.Events.EVENT_TYPE_HEADER;
-import static org.arso.wallet.events.Events.JSON;
-import static org.arso.wallet.events.Events.LEDGER_EVENTS;
-import static org.arso.wallet.events.Events.SCHEMA_VERSION;
-import static org.arso.wallet.events.Events.WITHDRAW_REQUESTS;
-
-import java.util.List;
-import java.util.Map;
 import org.arso.wallet.bridge.port.EventPublisher.Message;
 import org.arso.wallet.events.Beneficiary;
 import org.arso.wallet.events.LedgerEvent;
@@ -16,21 +7,18 @@ import org.arso.wallet.events.Payer;
 import org.arso.wallet.events.WithdrawRequest;
 import org.arso.wallet.ledger.domain.Counterparty;
 import org.arso.wallet.ledger.domain.LedgerEntry;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountBlocked;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountCreated;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountHeld;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountReleased;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountUnblocked;
-import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
-import org.arso.wallet.ledger.domain.LedgerEntry.UserCancelledWithdraw;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawCompleted;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.LedgerEntry.Withdrawn;
+import org.arso.wallet.ledger.domain.LedgerEntry.*;
 import org.arso.wallet.ledger.domain.Money;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.arso.wallet.events.Events.*;
 
 public final class EventMapper {
 
-    private EventMapper() {}
+    private EventMapper() {
+    }
 
     public static List<Message> messages(LedgerEntry entry) {
         var meta = entry.meta();
@@ -68,7 +56,8 @@ public final class EventMapper {
         String priorStatus = null;
         String releasedTo = null;
         switch (entry) {
-            case AccountCreated _, AccountBlocked _, AccountUnblocked _ -> {}
+            case AccountCreated _, AccountBlocked _, AccountUnblocked _ -> {
+            }
             case Deposited d -> {
                 amount = d.amount();
                 externalTxId = d.externalTxId();

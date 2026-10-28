@@ -1,16 +1,5 @@
 package org.arso.wallet.mocks;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.net.http.HttpTimeoutException;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.BooleanSupplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -20,11 +9,7 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.arso.wallet.events.Beneficiary;
-import org.arso.wallet.events.Events;
-import org.arso.wallet.events.LedgerEvent;
-import org.arso.wallet.events.VerificationResult;
-import org.arso.wallet.events.WithdrawRequest;
+import org.arso.wallet.events.*;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.PaymentId;
@@ -39,6 +24,18 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
+
+import java.net.http.HttpTimeoutException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.BooleanSupplier;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(classes = MocksApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class MocksTest {

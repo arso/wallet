@@ -2,8 +2,6 @@ package org.arso.wallet.timeout.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
-import java.time.Clock;
-import java.util.Map;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.ledger.application.CrashPoint;
 import org.arso.wallet.ledger.application.PaymentTransitions;
@@ -24,6 +22,9 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
+import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
 public class CheckerConfig {

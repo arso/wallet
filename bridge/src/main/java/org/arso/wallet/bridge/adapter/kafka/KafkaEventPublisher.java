@@ -1,25 +1,17 @@
 package org.arso.wallet.bridge.adapter.kafka;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.arso.wallet.bridge.port.EventPublisher;
-import org.arso.wallet.bridge.port.EventPublisher.PublishFailedException;
 import org.arso.wallet.events.json.EventJson;
+
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class KafkaEventPublisher implements EventPublisher, AutoCloseable {
 
@@ -86,7 +78,9 @@ public final class KafkaEventPublisher implements EventPublisher, AutoCloseable 
         return headers;
     }
 
-    /** W3C trace context starting a new sampled trace per record; the bridge exports no span itself (plan phase 10). */
+    /**
+     * W3C trace context starting a new sampled trace per record; the bridge exports no span itself (plan phase 10).
+     */
     private static String traceparent() {
         var random = ThreadLocalRandom.current();
         var hex = HexFormat.of();

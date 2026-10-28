@@ -1,15 +1,14 @@
 package org.arso.wallet.e2e;
 
-import static org.arso.wallet.e2e.Api.awaitFinal;
-import static org.arso.wallet.e2e.Api.awaitPayment;
-import static org.arso.wallet.e2e.Api.withdrawal;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Duration;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
+
+import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
+
+import static org.arso.wallet.e2e.Api.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EndToEndTest {
 

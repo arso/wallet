@@ -1,22 +1,23 @@
 package org.arso.wallet.bridge.config;
 
-import static org.arso.wallet.bridge.RecordingPublisher.ledgerSeqs;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent.DynamodbStreamRecord;
 import com.amazonaws.services.lambda.runtime.events.models.dynamodb.AttributeValue;
 import com.amazonaws.services.lambda.runtime.events.models.dynamodb.StreamRecord;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.arso.wallet.bridge.RecordingPublisher;
 import org.arso.wallet.bridge.application.Bridge;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.events.LedgerEvent;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.arso.wallet.bridge.RecordingPublisher.ledgerSeqs;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class BridgeLambdaHandlerTest {
 

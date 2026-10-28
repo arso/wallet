@@ -1,14 +1,15 @@
 package org.arso.wallet.mocks.adapter.wallet;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.time.Duration;
-import java.util.Map;
 import org.arso.wallet.mocks.port.WalletAdmin;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.Map;
 
 public final class HttpWalletAdmin implements WalletAdmin {
 

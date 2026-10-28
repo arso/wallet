@@ -1,15 +1,5 @@
 package org.arso.wallet.timeout.application;
 
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
-import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.PENDING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
-import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_TIMEOUT;
-
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Optional;
 import org.arso.wallet.ledger.application.CrashPoint;
 import org.arso.wallet.ledger.application.PaymentTransitions;
 import org.arso.wallet.ledger.domain.Actor;
@@ -17,7 +7,18 @@ import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.timeout.port.TransferPublisher;
 
-/** Verification timeout (spec 8.6) and stuck EXECUTING safety net (plan 5.6). Runs at requested_at + timeout. */
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+
+import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
+import static org.arso.wallet.ledger.domain.PaymentStatus.*;
+import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_TIMEOUT;
+
+/**
+ * Verification timeout (spec 8.6) and stuck EXECUTING safety net (plan 5.6). Runs at requested_at + timeout.
+ */
 public final class TimeoutChecker {
 
     private final LedgerStore store;
@@ -42,7 +43,9 @@ public final class TimeoutChecker {
         this.stuckAfter = stuckAfter;
     }
 
-    /** Empty when done; otherwise the time to check the payment again. */
+    /**
+     * Empty when done; otherwise the time to check the payment again.
+     */
     public Optional<Instant> check(PaymentId id) throws InterruptedException {
         var payment = store.findPayment(id).orElse(null);
         if (payment != null && payment.status() == PENDING) {

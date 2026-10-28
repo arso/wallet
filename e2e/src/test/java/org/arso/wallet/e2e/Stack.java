@@ -1,8 +1,5 @@
 package org.arso.wallet.e2e;
 
-import java.net.URI;
-import java.nio.file.Path;
-import java.time.Duration;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -10,6 +7,10 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
+
+import java.net.URI;
+import java.nio.file.Path;
+import java.time.Duration;
 
 final class Stack {
 
@@ -43,8 +44,8 @@ final class Stack {
             .withEnv("MOCKS_VERIFIERS_MAXLATENCY", "200ms")
             .withEnv("MOCKS_VERIFIERS_SLOWLATENCY", "4s");
     private static final GenericContainer<?> BRIDGE = new GenericContainer<>(new ImageFromDockerfile("wallet-e2e-bridge", false)
-                    .withFileFromPath("bridge", ROOT.resolve("bridge/build/install/bridge"))
-                    .withDockerfileFromBuilder(b -> b.from(JRE).copy("bridge", "/bridge").entryPoint("/bridge/bin/bridge").build()))
+            .withFileFromPath("bridge", ROOT.resolve("bridge/build/install/bridge"))
+            .withDockerfileFromBuilder(b -> b.from(JRE).copy("bridge", "/bridge").entryPoint("/bridge/bin/bridge").build()))
             .withNetwork(NETWORK)
             .withEnv("WALLET_DYNAMODB_ENDPOINT", DYNAMODB_URL)
             .withEnv("KAFKA_BOOTSTRAP_SERVERS", KAFKA_URL)
@@ -66,7 +67,8 @@ final class Stack {
         Startables.deepStart(BRIDGE, COMPLETION, EXECUTOR, CHECKER).join();
     }
 
-    private Stack() {}
+    private Stack() {
+    }
 
     static URI wallet() {
         return URI.create("http://" + WALLET_API.getHost() + ":" + WALLET_API.getMappedPort(8080));
@@ -76,7 +78,7 @@ final class Stack {
         var container = PREBUILT
                 ? new GenericContainer<>(DockerImageName.parse("wallet-e2e-" + module))
                 : new GenericContainer<>(new ImageFromDockerfile("wallet-e2e-" + module, false)
-                        .withDockerfile(ROOT.resolve(module).resolve("Dockerfile")));
+                .withDockerfile(ROOT.resolve(module).resolve("Dockerfile")));
         container
                 .withNetwork(NETWORK)
                 .withEnv("JAVA_TOOL_OPTIONS", "-Xmx256m -XX:+UseSerialGC -XX:TieredStopAtLevel=1")

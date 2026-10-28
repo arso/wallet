@@ -1,9 +1,5 @@
 package org.arso.wallet.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Clock;
-import java.util.UUID;
 import org.arso.wallet.api.config.WalletProperties;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
 import org.arso.wallet.ledger.domain.Actor;
@@ -12,6 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
+import java.time.Clock;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class HoldReleaseTest extends ApiTest {
 

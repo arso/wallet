@@ -1,30 +1,10 @@
 package org.arso.wallet.executor;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_TRANSFER;
-import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BooleanSupplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -39,14 +19,9 @@ import org.arso.wallet.events.Events;
 import org.arso.wallet.events.TransferRequest;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.application.CrashPoint;
-import org.arso.wallet.ledger.domain.AccountStatus;
-import org.arso.wallet.ledger.domain.LedgerEntry;
+import org.arso.wallet.ledger.domain.*;
 import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawCompleted;
 import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.Payment;
-import org.arso.wallet.ledger.domain.PaymentStatus;
-import org.arso.wallet.ledger.domain.RejectReason;
-import org.arso.wallet.ledger.domain.Ulid;
 import org.arso.wallet.testing.DynamoDbLocal;
 import org.arso.wallet.testing.KafkaLocal;
 import org.arso.wallet.testing.TestLedger;
@@ -61,6 +36,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
+import static org.arso.wallet.ledger.application.CrashPoint.AFTER_TRANSFER;
+import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = TransferExecutorApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TransferExecutorTest.Faults.class)

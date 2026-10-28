@@ -1,19 +1,6 @@
 package org.arso.wallet.worker;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.function.BooleanSupplier;
-import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.MemberDescription;
@@ -29,6 +16,15 @@ import org.arso.wallet.testing.TestLedger;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
 import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.AfterEach;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 abstract class PoolTest {
 

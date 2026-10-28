@@ -1,27 +1,13 @@
 package org.arso.wallet.bridge.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.arso.wallet.events.*;
+import org.arso.wallet.ledger.domain.*;
+import org.arso.wallet.ledger.domain.LedgerEntry.*;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import org.arso.wallet.events.Beneficiary;
-import org.arso.wallet.events.Events;
-import org.arso.wallet.events.LedgerEvent;
-import org.arso.wallet.events.Payer;
-import org.arso.wallet.events.WithdrawRequest;
-import org.arso.wallet.ledger.domain.AccountId;
-import org.arso.wallet.ledger.domain.AccountStatus;
-import org.arso.wallet.ledger.domain.Actor;
-import org.arso.wallet.ledger.domain.Counterparty;
-import org.arso.wallet.ledger.domain.Currency;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountHeld;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountReleased;
-import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
-import org.arso.wallet.ledger.domain.LedgerEntry.Meta;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.LedgerEntry.Withdrawn;
-import org.arso.wallet.ledger.domain.Money;
-import org.arso.wallet.ledger.domain.PaymentId;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EventMapperTest {
 

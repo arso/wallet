@@ -1,12 +1,13 @@
 package org.arso.wallet.worker;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.TopicPartition;
+
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.TreeMap;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.TopicPartition;
 
 final class Partition {
 
@@ -17,7 +18,8 @@ final class Partition {
         CIRCUIT_OPEN
     }
 
-    record Pending(ConsumerRecord<String, byte[]> record, Instant due) {}
+    record Pending(ConsumerRecord<String, byte[]> record, Instant due) {
+    }
 
     final TopicPartition tp;
     final ArrayDeque<Pending> pending = new ArrayDeque<>();

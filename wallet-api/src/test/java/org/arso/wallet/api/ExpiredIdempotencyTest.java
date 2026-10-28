@@ -1,10 +1,11 @@
 package org.arso.wallet.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @TestPropertySource(properties = "wallet.idempotency.ttl=1s")
 class ExpiredIdempotencyTest extends ApiTest {

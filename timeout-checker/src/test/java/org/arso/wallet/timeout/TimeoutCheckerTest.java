@@ -1,22 +1,8 @@
 package org.arso.wallet.timeout;
 
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BooleanSupplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -33,12 +19,8 @@ import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.application.CrashPoint;
 import org.arso.wallet.ledger.application.PaymentTransitions;
 import org.arso.wallet.ledger.application.Transactions.Writes;
-import org.arso.wallet.ledger.domain.AccountStatus;
-import org.arso.wallet.ledger.domain.Actor;
+import org.arso.wallet.ledger.domain.*;
 import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.Payment;
-import org.arso.wallet.ledger.domain.PaymentStatus;
-import org.arso.wallet.ledger.domain.RejectReason;
 import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
@@ -63,6 +45,21 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
+
+import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = TimeoutCheckerApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(TimeoutCheckerTest.Faults.class)

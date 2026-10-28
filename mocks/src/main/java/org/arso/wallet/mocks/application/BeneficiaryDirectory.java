@@ -1,11 +1,12 @@
 package org.arso.wallet.mocks.application;
 
+import org.arso.wallet.events.Beneficiary;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
-import org.arso.wallet.events.Beneficiary;
 
 public final class BeneficiaryDirectory {
 

@@ -1,12 +1,5 @@
 package org.arso.wallet.worker;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Duration;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.arso.wallet.events.VerificationResult;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.domain.AccountStatus;
@@ -16,6 +9,14 @@ import org.arso.wallet.worker.WorkerSettings.HoldTarget;
 import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.exception.SdkClientException;
+
+import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class FailurePolicyTest extends PoolTest {
 

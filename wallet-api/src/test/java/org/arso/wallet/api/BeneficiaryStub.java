@@ -1,21 +1,25 @@
 package org.arso.wallet.api;
 
 import com.sun.net.httpserver.HttpServer;
+import org.springframework.http.HttpStatus;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import org.springframework.http.HttpStatus;
 
-/** In-process beneficiary service: any id starting with "b-" exists, "missing" does not, and it can be taken down. */
+/**
+ * In-process beneficiary service: any id starting with "b-" exists, "missing" does not, and it can be taken down.
+ */
 final class BeneficiaryStub {
 
     static volatile boolean down;
 
     private static final HttpServer SERVER = start();
 
-    private BeneficiaryStub() {}
+    private BeneficiaryStub() {
+    }
 
     static URI url() {
         return URI.create("http://localhost:" + SERVER.getAddress().getPort());

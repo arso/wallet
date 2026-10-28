@@ -1,21 +1,25 @@
 package org.arso.wallet.e2e;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import tools.jackson.databind.JsonNode;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 final class Invariants {
 
     private static final Map<String, List<JsonNode>> SEEN = new ConcurrentHashMap<>();
 
-    private Invariants() {}
+    private Invariants() {
+    }
 
-    /** Call once every payment of the account is final. */
+    /**
+     * Call once every payment of the account is final.
+     */
     static void check(String account) {
         var ledger = Api.ledger(account);
         var balance = 0L;

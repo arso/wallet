@@ -4,7 +4,8 @@ import java.time.Instant;
 
 public sealed interface LedgerEntry {
 
-    record Meta(AccountId accountId, long seq, Instant recordedAt, long balanceAfter, Actor actor, String reason) {}
+    record Meta(AccountId accountId, long seq, Instant recordedAt, long balanceAfter, Actor actor, String reason) {
+    }
 
     Meta meta();
 
@@ -23,15 +24,20 @@ public sealed interface LedgerEntry {
         };
     }
 
-    record AccountCreated(Meta meta) implements LedgerEntry {}
+    record AccountCreated(Meta meta) implements LedgerEntry {
+    }
 
-    record Deposited(Meta meta, Money amount, String externalTxId, Counterparty payer) implements LedgerEntry {}
+    record Deposited(Meta meta, Money amount, String externalTxId, Counterparty payer) implements LedgerEntry {
+    }
 
-    record Withdrawn(Meta meta, Money amount, PaymentId paymentId, Counterparty beneficiary) implements LedgerEntry {}
+    record Withdrawn(Meta meta, Money amount, PaymentId paymentId, Counterparty beneficiary) implements LedgerEntry {
+    }
 
-    record WithdrawCompleted(Meta meta, PaymentId paymentId, String externalTxId) implements LedgerEntry {}
+    record WithdrawCompleted(Meta meta, PaymentId paymentId, String externalTxId) implements LedgerEntry {
+    }
 
-    record UserCancelledWithdraw(Meta meta, Money amount, PaymentId paymentId) implements LedgerEntry {}
+    record UserCancelledWithdraw(Meta meta, Money amount, PaymentId paymentId) implements LedgerEntry {
+    }
 
     record WithdrawRejected(Meta meta, Money amount, PaymentId paymentId, String verifier) implements LedgerEntry {
 
@@ -40,11 +46,15 @@ public sealed interface LedgerEntry {
         }
     }
 
-    record AccountBlocked(Meta meta) implements LedgerEntry {}
+    record AccountBlocked(Meta meta) implements LedgerEntry {
+    }
 
-    record AccountUnblocked(Meta meta) implements LedgerEntry {}
+    record AccountUnblocked(Meta meta) implements LedgerEntry {
+    }
 
-    record AccountHeld(Meta meta, String holdRef, AccountStatus priorStatus) implements LedgerEntry {}
+    record AccountHeld(Meta meta, String holdRef, AccountStatus priorStatus) implements LedgerEntry {
+    }
 
-    record AccountReleased(Meta meta, AccountStatus releasedTo) implements LedgerEntry {}
+    record AccountReleased(Meta meta, AccountStatus releasedTo) implements LedgerEntry {
+    }
 }

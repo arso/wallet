@@ -1,31 +1,25 @@
 package org.arso.wallet.api.application;
 
-import static org.arso.wallet.ledger.domain.Timestamps.format;
+import org.arso.wallet.ledger.domain.*;
+import org.arso.wallet.ledger.domain.LedgerEntry.*;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.arso.wallet.ledger.domain.Account;
-import org.arso.wallet.ledger.domain.Counterparty;
-import org.arso.wallet.ledger.domain.LedgerEntry;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountHeld;
-import org.arso.wallet.ledger.domain.LedgerEntry.AccountReleased;
-import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
-import org.arso.wallet.ledger.domain.LedgerEntry.UserCancelledWithdraw;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawCompleted;
-import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.LedgerEntry.Withdrawn;
-import org.arso.wallet.ledger.domain.Money;
-import org.arso.wallet.ledger.domain.Payment;
+
+import static org.arso.wallet.ledger.domain.Timestamps.format;
 
 public final class ResponseBodies {
 
-    private ResponseBodies() {}
+    private ResponseBodies() {
+    }
 
-    public record AccountBody(String accountId, long balance, String currency, String status, long version) {}
+    public record AccountBody(String accountId, long balance, String currency, String status, long version) {
+    }
 
     public record DepositBody(
-            String accountId, long seq, long amount, String currency, long balanceAfter, String externalTxId) {}
+            String accountId, long seq, long amount, String currency, long balanceAfter, String externalTxId) {
+    }
 
     public record PaymentBody(
             String paymentId,
@@ -40,13 +34,17 @@ public final class ResponseBodies {
             String rejectReason,
             String externalTxId,
             List<String> requiredSteps,
-            Map<String, VerificationBody> verifications) {}
+            Map<String, VerificationBody> verifications) {
+    }
 
-    public record VerificationBody(boolean allowed, String details, String decidedAt, String recordedAt, Boolean late) {}
+    public record VerificationBody(boolean allowed, String details, String decidedAt, String recordedAt, Boolean late) {
+    }
 
-    public record LedgerPage(List<Map<String, Object>> entries, Long nextBeforeSeq) {}
+    public record LedgerPage(List<Map<String, Object>> entries, Long nextBeforeSeq) {
+    }
 
-    public record ProblemBody(String type, String title, int status, String detail, String error) {}
+    public record ProblemBody(String type, String title, int status, String detail, String error) {
+    }
 
     static AccountBody account(Account a) {
         return new AccountBody(
@@ -131,7 +129,8 @@ public final class ResponseBodies {
                 out.put("prior_status", h.priorStatus().name());
             }
             case AccountReleased r -> out.put("released_to", r.releasedTo().name());
-            default -> {}
+            default -> {
+            }
         }
         return out;
     }

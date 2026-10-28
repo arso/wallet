@@ -1,9 +1,5 @@
 package org.arso.wallet.testing;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -11,6 +7,11 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.testcontainers.kafka.KafkaContainer;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public final class KafkaLocal {
 
@@ -20,13 +21,16 @@ public final class KafkaLocal {
         CONTAINER.start();
     }
 
-    private KafkaLocal() {}
+    private KafkaLocal() {
+    }
 
     public static String bootstrapServers() {
         return CONTAINER.getBootstrapServers();
     }
 
-    /** All records with this key currently in the topic, read without a consumer group. */
+    /**
+     * All records with this key currently in the topic, read without a consumer group.
+     */
     public static List<ConsumerRecord<String, byte[]>> records(String topic, String key) {
         var config = Map.<String, Object>of(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers(),

@@ -1,16 +1,13 @@
 package org.arso.wallet.api.adapter.rest;
 
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
+import org.arso.wallet.ledger.domain.*;
 
-import org.arso.wallet.ledger.domain.AccountStatus;
-import org.arso.wallet.ledger.domain.Counterparty;
-import org.arso.wallet.ledger.domain.Currency;
-import org.arso.wallet.ledger.domain.DomainException;
-import org.arso.wallet.ledger.domain.Money;
+import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
 
 final class RequestBodies {
 
-    private RequestBodies() {}
+    private RequestBodies() {
+    }
 
     record CreateAccount(String currency) {
 
@@ -30,7 +27,8 @@ final class RequestBodies {
         }
     }
 
-    record Payer(String payerId, String name, String accountMasked, String accountFingerprint, String country) {}
+    record Payer(String payerId, String name, String accountMasked, String accountFingerprint, String country) {
+    }
 
     record Withdraw(Long amount, String currency, String beneficiaryId) {
 
@@ -42,7 +40,8 @@ final class RequestBodies {
         }
     }
 
-    record Reason(String reason) {}
+    record Reason(String reason) {
+    }
 
     record Release(String to, Boolean confirm, String reason) {
 

@@ -17,5 +17,6 @@ public final class Events {
     public static final String ACCOUNT_HELD = "account_held";
     public static final String ACCOUNT_RELEASED = "account_released";
 
-    private Events() {}
+    private Events() {
+    }
 }

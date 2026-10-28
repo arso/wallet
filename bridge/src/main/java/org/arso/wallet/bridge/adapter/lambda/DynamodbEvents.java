@@ -3,13 +3,15 @@ package org.arso.wallet.bridge.adapter.lambda;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent;
 import com.amazonaws.services.lambda.runtime.events.DynamodbEvent.DynamodbStreamRecord;
 import com.amazonaws.services.lambda.runtime.events.transformers.v2.dynamodb.DynamodbAttributeValueTransformer;
-import java.util.List;
 import org.arso.wallet.ledger.adapter.dynamodb.LedgerItems;
 import org.arso.wallet.ledger.domain.LedgerEntry;
 
+import java.util.List;
+
 public final class DynamodbEvents {
 
-    private DynamodbEvents() {}
+    private DynamodbEvents() {
+    }
 
     public static List<LedgerEntry> ledgerEntries(DynamodbEvent event) {
         return event.getRecords().stream()

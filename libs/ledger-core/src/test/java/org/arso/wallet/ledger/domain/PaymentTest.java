@@ -1,18 +1,15 @@
 package org.arso.wallet.ledger.domain;
 
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
 import static org.arso.wallet.ledger.domain.AccountTest.NOW;
 import static org.arso.wallet.ledger.domain.AccountTest.expect;
 import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_TRANSITION;
 import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_CANCELLABLE;
-import static org.arso.wallet.ledger.domain.PaymentStatus.CANCELLED;
-import static org.arso.wallet.ledger.domain.PaymentStatus.COMPLETED;
-import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.NEEDS_REVIEW;
-import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
+import static org.arso.wallet.ledger.domain.PaymentStatus.*;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
-import org.junit.jupiter.api.Test;
 
 class PaymentTest {
 

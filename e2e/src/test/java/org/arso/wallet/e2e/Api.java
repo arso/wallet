@@ -1,7 +1,7 @@
 package org.arso.wallet.e2e;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,8 +13,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 final class Api {
 
@@ -30,7 +31,8 @@ final class Api {
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
-    private Api() {}
+    private Api() {
+    }
 
     static String createAccount() {
         var created = post("/accounts", "{}");

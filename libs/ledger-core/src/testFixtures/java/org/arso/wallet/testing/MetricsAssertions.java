@@ -1,15 +1,18 @@
 package org.arso.wallet.testing;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public final class MetricsAssertions {
 
-    private MetricsAssertions() {}
+    private MetricsAssertions() {
+    }
 
-    /** No account or payment id (ULID) in any label value (spec 15.4). */
+    /**
+     * No account or payment id (ULID) in any label value (spec 15.4).
+     */
     public static void assertNoIdsInLabels(MeterRegistry meters) {
         assertThat(meters.getMeters())
                 .flatExtracting(m -> m.getId().getTags())

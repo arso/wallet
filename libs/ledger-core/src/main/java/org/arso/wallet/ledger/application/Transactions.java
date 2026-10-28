@@ -1,25 +1,24 @@
 package org.arso.wallet.ledger.application;
 
-import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_FOUND;
+import org.arso.wallet.ledger.domain.Account;
+import org.arso.wallet.ledger.domain.AccountId;
+import org.arso.wallet.ledger.domain.DomainException;
+import org.arso.wallet.ledger.port.*;
+import org.arso.wallet.ledger.port.Conflict.AccountChanged;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
-import org.arso.wallet.ledger.domain.Account;
-import org.arso.wallet.ledger.domain.AccountId;
-import org.arso.wallet.ledger.domain.DomainException;
-import org.arso.wallet.ledger.port.ConditionFailedException;
-import org.arso.wallet.ledger.port.Conflict.AccountChanged;
-import org.arso.wallet.ledger.port.LedgerMetrics;
-import org.arso.wallet.ledger.port.LedgerStore;
-import org.arso.wallet.ledger.port.TransientStoreException;
-import org.arso.wallet.ledger.port.TxItem;
+
+import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_FOUND;
 
 public final class Transactions {
 
-    /** Items to commit in one transaction, and what to return once they are committed. */
+    /**
+     * Items to commit in one transaction, and what to return once they are committed.
+     */
     public record Writes<T>(List<TxItem> items, T result) {
 
         public static <T> Writes<T> none(T result) {
@@ -27,7 +26,8 @@ public final class Transactions {
         }
     }
 
-    public record RetryPolicy(int maxAttempts, Duration maxBackoff) {}
+    public record RetryPolicy(int maxAttempts, Duration maxBackoff) {
+    }
 
     private final LedgerStore store;
     private final RetryPolicy policy;

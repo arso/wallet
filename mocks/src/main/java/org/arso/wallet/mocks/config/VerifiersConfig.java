@@ -2,9 +2,6 @@ package org.arso.wallet.mocks.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
-import java.time.Clock;
-import java.util.List;
-import java.util.Map;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.mocks.adapter.kafka.KafkaResultPublisher;
@@ -20,6 +17,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProp
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
+import java.util.List;
+import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnBooleanProperty("mocks.verifiers.enabled")

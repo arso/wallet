@@ -1,5 +1,12 @@
 package org.arso.wallet.testing;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
+
+import java.util.TreeSet;
+
 import static com.tngtech.archunit.base.DescribedPredicate.alwaysTrue;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
@@ -7,18 +14,15 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.onionArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
-import com.tngtech.archunit.core.domain.JavaClass;
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
-import java.util.TreeSet;
-
-/** Hexagonal / onion rules from spec 4, shared by every module. */
+/**
+ * Hexagonal / onion rules from spec 4, shared by every module.
+ */
 public final class HexagonalRules {
 
     private static final String EVENTS = "org.arso.wallet.events";
 
-    private HexagonalRules() {}
+    private HexagonalRules() {
+    }
 
     public static void check(String basePackage) {
         var classes = new ClassFileImporter()

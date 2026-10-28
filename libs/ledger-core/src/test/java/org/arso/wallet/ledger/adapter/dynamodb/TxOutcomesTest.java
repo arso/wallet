@@ -1,13 +1,5 @@
 package org.arso.wallet.ledger.adapter.dynamodb;
 
-import static java.net.HttpURLConnection.HTTP_ACCEPTED;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import org.arso.wallet.ledger.domain.Account;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.Currency;
@@ -24,6 +16,15 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.CancellationReason;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static java.net.HttpURLConnection.HTTP_ACCEPTED;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class TxOutcomesTest {
 

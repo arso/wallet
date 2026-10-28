@@ -2,9 +2,10 @@ package org.arso.wallet.executor.adapter.transfer;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.core.IntervalFunction;
-import java.util.concurrent.TimeUnit;
 import org.arso.wallet.executor.port.TransferService;
 import org.arso.wallet.ledger.domain.Payment;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Retries an unknown outcome with the same idempotency key (spec 8.5). An open circuit throws

@@ -1,8 +1,5 @@
 package org.arso.wallet.worker;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -11,13 +8,18 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Sends a failed record again after its bug is fixed and its account is released. The {@code hold_ref} gives the
  * topic, partition and offset. Without this, a payment held by the timeout checker would never finish.
  */
 public final class Replay {
 
-    private Replay() {}
+    private Replay() {
+    }
 
     public static void main(String[] args) throws InterruptedException {
         String topic = null;

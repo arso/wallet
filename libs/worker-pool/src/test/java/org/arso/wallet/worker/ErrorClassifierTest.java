@@ -1,13 +1,5 @@
 package org.arso.wallet.worker;
 
-import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static org.arso.wallet.worker.ErrorClassifier.Kind.PERMANENT;
-import static org.arso.wallet.worker.ErrorClassifier.Kind.TRANSIENT;
-import static org.arso.wallet.worker.ErrorClassifier.Kind.UNKNOWN;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.arso.wallet.events.VerificationResult;
 import org.arso.wallet.events.json.EventJson;
@@ -16,6 +8,13 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
+
+import java.util.concurrent.ExecutionException;
+
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+import static org.arso.wallet.worker.ErrorClassifier.Kind.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ErrorClassifierTest {
 

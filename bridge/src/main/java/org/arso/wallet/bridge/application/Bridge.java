@@ -1,8 +1,9 @@
 package org.arso.wallet.bridge.application;
 
-import java.util.List;
 import org.arso.wallet.bridge.port.EventPublisher;
 import org.arso.wallet.ledger.domain.LedgerEntry;
+
+import java.util.List;
 
 /**
  * Publishes one stream batch. Any failure throws, so the batch is not checkpointed and is sent again; nothing is ever

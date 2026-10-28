@@ -1,7 +1,5 @@
 package org.arso.wallet.testing;
 
-import java.net.URI;
-import java.util.UUID;
 import org.arso.wallet.ledger.adapter.dynamodb.TableSetup;
 import org.testcontainers.containers.GenericContainer;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -9,6 +7,9 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.streams.DynamoDbStreamsClient;
+
+import java.net.URI;
+import java.util.UUID;
 
 public final class DynamoDbLocal {
 
@@ -20,7 +21,8 @@ public final class DynamoDbLocal {
         CONTAINER.start();
     }
 
-    private DynamoDbLocal() {}
+    private DynamoDbLocal() {
+    }
 
     public static URI endpoint() {
         return URI.create("http://" + CONTAINER.getHost() + ":" + CONTAINER.getMappedPort(8000));

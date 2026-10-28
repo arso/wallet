@@ -1,6 +1,5 @@
 package org.arso.wallet.completion.adapter.kafka;
 
-import java.nio.charset.StandardCharsets;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.arso.wallet.completion.port.TransferPublisher;
@@ -10,6 +9,8 @@ import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.domain.Ulid;
 import org.arso.wallet.worker.AckedProducer;
+
+import java.nio.charset.StandardCharsets;
 
 public final class KafkaTransferPublisher implements TransferPublisher {
 

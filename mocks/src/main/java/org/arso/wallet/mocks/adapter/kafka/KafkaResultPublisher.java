@@ -1,6 +1,5 @@
 package org.arso.wallet.mocks.adapter.kafka;
 
-import java.nio.charset.StandardCharsets;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.arso.wallet.events.Events;
@@ -8,6 +7,8 @@ import org.arso.wallet.events.VerificationResult;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.mocks.port.ResultPublisher;
 import org.arso.wallet.worker.AckedProducer;
+
+import java.nio.charset.StandardCharsets;
 
 public final class KafkaResultPublisher implements ResultPublisher {
 

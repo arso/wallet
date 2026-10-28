@@ -1,6 +1,8 @@
 package org.arso.wallet.mocks;
 
 import com.sun.net.httpserver.HttpServer;
+import org.springframework.http.HttpStatus;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -10,17 +12,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.springframework.http.HttpStatus;
 
 final class WalletStub {
 
-    record Call(String path, String idempotencyKey) {}
+    record Call(String path, String idempotencyKey) {
+    }
 
     static final List<Call> CALLS = new CopyOnWriteArrayList<>();
     static final Set<String> ON_HOLD = ConcurrentHashMap.newKeySet();
     private static final HttpServer SERVER = start();
 
-    private WalletStub() {}
+    private WalletStub() {
+    }
 
     static URI url() {
         return URI.create("http://localhost:" + SERVER.getAddress().getPort());

@@ -7,7 +7,6 @@ import io.github.resilience4j.core.IntervalFunction;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
-import java.net.http.HttpClient;
 import org.arso.wallet.events.Events;
 import org.arso.wallet.executor.adapter.kafka.TransferRequestHandler;
 import org.arso.wallet.executor.adapter.transfer.HttpTransferService;
@@ -32,6 +31,8 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.client.observation.ClientRequestObservationContext;
 import org.springframework.http.client.observation.DefaultClientRequestObservationConvention;
 import org.springframework.web.client.RestClient;
+
+import java.net.http.HttpClient;
 
 @Configuration(proxyBeanMethods = false)
 public class ExecutorConfig {

@@ -1,10 +1,8 @@
 package org.arso.wallet.ledger.domain;
 
-import static org.arso.wallet.ledger.domain.DomainException.Code.CURRENCY_MISMATCH;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INSUFFICIENT_FUNDS;
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_AMOUNT;
-
 import java.util.Objects;
+
+import static org.arso.wallet.ledger.domain.DomainException.Code.*;
 
 public record Money(long amountMinor, Currency currency) {
 

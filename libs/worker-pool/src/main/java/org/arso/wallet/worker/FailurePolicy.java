@@ -1,14 +1,15 @@
 package org.arso.wallet.worker;
 
-import static java.lang.System.Logger.Level.ERROR;
-import static java.lang.System.Logger.Level.WARNING;
-
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Duration;
-import java.util.concurrent.ThreadLocalRandom;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.worker.RecordHandler.Outcome;
+
+import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
+
+import static java.lang.System.Logger.Level.ERROR;
+import static java.lang.System.Logger.Level.WARNING;
 
 final class FailurePolicy {
 
@@ -67,9 +68,9 @@ final class FailurePolicy {
                 var result = record.key() == null
                         ? AccountHolds.Result.UNATTRIBUTABLE
                         : switch (settings.holdTarget()) {
-                            case ACCOUNT_ID -> holds.holdAccount(record.key(), errorClass, ref, settings.actor());
-                            case PAYMENT_ID -> holds.holdPaymentAccount(record.key(), errorClass, ref, settings.actor());
-                        };
+                    case ACCOUNT_ID -> holds.holdAccount(record.key(), errorClass, ref, settings.actor());
+                    case PAYMENT_ID -> holds.holdPaymentAccount(record.key(), errorClass, ref, settings.actor());
+                };
                 switch (result) {
                     case HELD -> {
                         meters.counter("accounts_held_total", "service", settings.service(), "error_class", errorClass)
@@ -81,7 +82,8 @@ final class FailurePolicy {
                                 record.topic()).increment();
                         LOG.log(WARNING, "unattributable record " + ref + " key=" + record.key() + " marked done", error);
                     }
-                    case ALREADY_HELD -> {}
+                    case ALREADY_HELD -> {
+                    }
                 }
                 return true;
             } catch (RuntimeException e) {

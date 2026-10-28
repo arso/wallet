@@ -1,18 +1,13 @@
 package org.arso.wallet.ledger.domain;
 
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_TRANSITION;
-import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_CANCELLABLE;
-import static org.arso.wallet.ledger.domain.PaymentStatus.CANCELLED;
-import static org.arso.wallet.ledger.domain.PaymentStatus.COMPLETED;
-import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.NEEDS_REVIEW;
-import static org.arso.wallet.ledger.domain.PaymentStatus.PENDING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_TRANSITION;
+import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_CANCELLABLE;
+import static org.arso.wallet.ledger.domain.PaymentStatus.*;
 
 public record Payment(
         PaymentId id,

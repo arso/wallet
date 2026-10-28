@@ -1,11 +1,9 @@
 package org.arso.wallet.executor.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Clock;
-import java.time.Duration;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoAccountHolds;
-import org.arso.wallet.ledger.adapter.dynamodb.DynamoDbMetrics;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoDbClients;
+import org.arso.wallet.ledger.adapter.dynamodb.DynamoDbMetrics;
 import org.arso.wallet.ledger.adapter.dynamodb.DynamoLedgerStore;
 import org.arso.wallet.ledger.adapter.metrics.MicrometerLedgerMetrics;
 import org.arso.wallet.ledger.application.PaymentTransitions;
@@ -16,6 +14,9 @@ import org.arso.wallet.ledger.port.LedgerStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
+import java.time.Clock;
+import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class LedgerConfig {

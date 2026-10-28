@@ -1,21 +1,6 @@
 package org.arso.wallet.completion;
 
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_EXECUTING;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_STEP_WRITE;
-import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BooleanSupplier;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -33,15 +18,8 @@ import org.arso.wallet.events.Events;
 import org.arso.wallet.events.VerificationResult;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.application.CrashPoint;
-import org.arso.wallet.ledger.domain.AccountId;
-import org.arso.wallet.ledger.domain.AccountStatus;
+import org.arso.wallet.ledger.domain.*;
 import org.arso.wallet.ledger.domain.LedgerEntry.WithdrawRejected;
-import org.arso.wallet.ledger.domain.Payment;
-import org.arso.wallet.ledger.domain.PaymentId;
-import org.arso.wallet.ledger.domain.PaymentStatus;
-import org.arso.wallet.ledger.domain.RejectReason;
-import org.arso.wallet.ledger.domain.Ulid;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.arso.wallet.testing.DynamoDbLocal;
 import org.arso.wallet.testing.KafkaLocal;
 import org.arso.wallet.testing.TestLedger;
@@ -55,6 +33,21 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
+
+import static org.arso.wallet.ledger.application.CrashPoint.*;
+import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = CompletionServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(CompletionServiceTest.Faults.class)

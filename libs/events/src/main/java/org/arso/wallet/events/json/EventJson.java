@@ -1,9 +1,6 @@
 package org.arso.wallet.events.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.PropertyNamingStrategies;
@@ -11,6 +8,10 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.databind.ser.std.StdSerializer;
+
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 public final class EventJson {
 
@@ -25,7 +26,8 @@ public final class EventJson {
             .addModule(new SimpleModule("event-timestamps").addSerializer(Instant.class, new InstantSerializer()))
             .build();
 
-    private EventJson() {}
+    private EventJson() {
+    }
 
     public static byte[] write(Object message) {
         return MAPPER.writeValueAsBytes(message);

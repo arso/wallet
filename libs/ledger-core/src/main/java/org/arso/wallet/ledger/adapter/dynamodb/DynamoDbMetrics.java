@@ -2,17 +2,16 @@ package org.arso.wallet.ledger.adapter.dynamodb;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.time.Duration;
 import software.amazon.awssdk.core.exception.SdkServiceException;
-import software.amazon.awssdk.core.interceptor.Context;
-import software.amazon.awssdk.core.interceptor.ExecutionAttribute;
-import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
-import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
-import software.amazon.awssdk.core.interceptor.SdkExecutionAttribute;
+import software.amazon.awssdk.core.interceptor.*;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
 
-/** {@code dynamodb_request_seconds} per operation and outcome (spec 15.4), including SDK retries. */
+import java.time.Duration;
+
+/**
+ * {@code dynamodb_request_seconds} per operation and outcome (spec 15.4), including SDK retries.
+ */
 public final class DynamoDbMetrics implements ExecutionInterceptor {
 
     private static final ExecutionAttribute<Long> START = new ExecutionAttribute<>("metrics-start");

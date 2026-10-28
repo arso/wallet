@@ -1,22 +1,7 @@
 package org.arso.wallet.ledger.application;
 
-import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.PENDING;
-import static org.arso.wallet.ledger.domain.RejectReason.ACCOUNT_BLOCKED;
-import static org.arso.wallet.ledger.domain.RejectReason.EXECUTION_FAILED;
-import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_REJECTED;
-
-import java.time.Clock;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.function.Supplier;
 import org.arso.wallet.ledger.application.Transactions.Writes;
-import org.arso.wallet.ledger.domain.Actor;
-import org.arso.wallet.ledger.domain.DomainException;
-import org.arso.wallet.ledger.domain.Payment;
-import org.arso.wallet.ledger.domain.PaymentId;
-import org.arso.wallet.ledger.domain.RejectReason;
+import org.arso.wallet.ledger.domain.*;
 import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict.AccountChanged;
 import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
@@ -26,6 +11,16 @@ import org.arso.wallet.ledger.port.TxItem.CheckAccountActive;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
 import org.arso.wallet.ledger.port.TxItem.UpdatePayment;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.function.Supplier;
+
+import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
+import static org.arso.wallet.ledger.domain.PaymentStatus.PENDING;
+import static org.arso.wallet.ledger.domain.RejectReason.*;
 
 public final class PaymentTransitions {
 
@@ -87,7 +82,9 @@ public final class PaymentTransitions {
         });
     }
 
-    /** Moves a fully allowed PENDING payment to EXECUTING (spec 6.2, 9.8, 9.9). Rejects it when a reject or a block wins. */
+    /**
+     * Moves a fully allowed PENDING payment to EXECUTING (spec 6.2, 9.8, 9.9). Rejects it when a reject or a block wins.
+     */
     public Payment markExecuting(Payment payment, Actor actor) {
         if (payment.status() != PENDING || !payment.allRequiredAllowed()) {
             return payment;
@@ -100,7 +97,9 @@ public final class PaymentTransitions {
             return executing;
         } catch (ConditionFailedException e) {
             return switch (e.conflict()) {
-                case PaymentChanged(var current) when current != null && current.status() == PENDING && current.anyRejected() ->
+                case PaymentChanged(
+                        var current
+                ) when current != null && current.status() == PENDING && current.anyRejected() ->
                         reject(current, VERIFICATION_REJECTED, firstRejectedStep(current), actor);
                 case PaymentChanged(var current) -> current;
                 case AccountChanged _ -> reject(payment, ACCOUNT_BLOCKED, null, actor);

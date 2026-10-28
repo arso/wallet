@@ -1,7 +1,10 @@
 package org.arso.wallet.worker;
 
-import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.arso.wallet.worker.RecordHandler.Outcome;
+import org.arso.wallet.worker.WorkerSettings.HoldTarget;
+import org.arso.wallet.worker.WorkerSettings.Mode;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -12,11 +15,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.arso.wallet.worker.RecordHandler.Outcome;
-import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
-import org.junit.jupiter.api.Test;
+
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DispatchTest extends PoolTest {
 

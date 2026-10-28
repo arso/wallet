@@ -9,7 +9,8 @@ public final class Timestamps {
     private static final DateTimeFormatter FORMAT =
             DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
-    private Timestamps() {}
+    private Timestamps() {
+    }
 
     public static String format(Instant instant) {
         return instant == null ? null : FORMAT.format(instant);

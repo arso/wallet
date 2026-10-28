@@ -1,7 +1,5 @@
 package org.arso.wallet.ledger.adapter.dynamodb;
 
-import java.util.List;
-import java.util.Map;
 import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict;
 import org.arso.wallet.ledger.port.Conflict.AccountChanged;
@@ -10,20 +8,20 @@ import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
 import org.arso.wallet.ledger.port.Conflict.ResponseExists;
 import org.arso.wallet.ledger.port.TransientStoreException;
 import org.arso.wallet.ledger.port.TxItem;
-import org.arso.wallet.ledger.port.TxItem.CheckAccountActive;
-import org.arso.wallet.ledger.port.TxItem.PutAccount;
-import org.arso.wallet.ledger.port.TxItem.PutDeposit;
-import org.arso.wallet.ledger.port.TxItem.PutEntry;
-import org.arso.wallet.ledger.port.TxItem.PutPayment;
-import org.arso.wallet.ledger.port.TxItem.PutResponse;
-import org.arso.wallet.ledger.port.TxItem.UpdatePayment;
+import org.arso.wallet.ledger.port.TxItem.*;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
 
-/** Transaction outcome rules (plan 3.11): condition failures beat bugs, bugs beat retryable reasons. */
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Transaction outcome rules (plan 3.11): condition failures beat bugs, bugs beat retryable reasons.
+ */
 final class TxOutcomes {
 
-    private TxOutcomes() {}
+    private TxOutcomes() {
+    }
 
     static RuntimeException classify(TransactionCanceledException e, List<TxItem> items) {
         var reasons = e.cancellationReasons();
@@ -34,8 +32,10 @@ final class TxOutcomes {
         for (int i = 0; i < reasons.size(); i++) {
             var reason = reasons.get(i);
             switch (reason.code()) {
-                case null -> {}
-                case "None" -> {}
+                case null -> {
+                }
+                case "None" -> {
+                }
                 case "ConditionalCheckFailed" -> {
                     var item = items.get(i);
                     if (rank(item) < bestRank) {

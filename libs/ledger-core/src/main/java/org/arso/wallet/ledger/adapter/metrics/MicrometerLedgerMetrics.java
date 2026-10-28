@@ -3,10 +3,11 @@ package org.arso.wallet.ledger.adapter.metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.time.Duration;
-import java.time.Instant;
 import org.arso.wallet.ledger.domain.Payment;
 import org.arso.wallet.ledger.port.LedgerMetrics;
+
+import java.time.Duration;
+import java.time.Instant;
 
 public final class MicrometerLedgerMetrics implements LedgerMetrics {
 

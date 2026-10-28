@@ -1,13 +1,14 @@
 package org.arso.wallet.events;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import org.arso.wallet.events.json.EventJson;
 import org.junit.jupiter.api.Test;
 import tools.jackson.core.JacksonException;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EventJsonTest {
 

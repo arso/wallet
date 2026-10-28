@@ -1,16 +1,19 @@
 package org.arso.wallet.api.application;
 
-import static java.net.HttpURLConnection.HTTP_CONFLICT;
-import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-
-import java.time.Clock;
-import java.util.function.Supplier;
 import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict.ResponseExists;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.ledger.port.StoredResponse;
 
-/** Request flow for every POST (plan 3.8). */
+import java.time.Clock;
+import java.util.function.Supplier;
+
+import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
+
+/**
+ * Request flow for every POST (plan 3.8).
+ */
 public final class Idempotency {
 
     private final LedgerStore store;

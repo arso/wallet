@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.util.Objects;
 
 public record VerificationResult(
-        String eventId, int schemaVersion, String paymentId, String step, boolean allowed, String details, Instant decidedAt) {
+        String eventId, int schemaVersion, String paymentId, String step, boolean allowed, String details,
+        Instant decidedAt) {
 
     public VerificationResult {
         Objects.requireNonNull(eventId, "event_id");

@@ -1,17 +1,20 @@
 package org.arso.wallet.mocks.application;
 
+import org.arso.wallet.ledger.domain.Ulid;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.arso.wallet.ledger.domain.Ulid;
 
 public final class TransferDesk {
 
     public sealed interface Result {
 
-        record Sent(String externalTxId) implements Result {}
+        record Sent(String externalTxId) implements Result {
+        }
 
-        record Rejected(String reason) implements Result {}
+        record Rejected(String reason) implements Result {
+        }
     }
 
     private final Map<String, Result> results = new ConcurrentHashMap<>();

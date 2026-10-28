@@ -1,11 +1,12 @@
 package org.arso.wallet.bridge;
 
+import org.arso.wallet.bridge.port.EventPublisher;
+import org.arso.wallet.events.LedgerEvent;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
-import org.arso.wallet.bridge.port.EventPublisher;
-import org.arso.wallet.events.LedgerEvent;
 
 public final class RecordingPublisher implements EventPublisher {
 

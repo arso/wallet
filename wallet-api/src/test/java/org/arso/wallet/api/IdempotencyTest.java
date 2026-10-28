@@ -1,6 +1,9 @@
 package org.arso.wallet.api;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,14 +11,13 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.test.web.servlet.client.RestTestClient.ResponseSpec;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class IdempotencyTest extends ApiTest {
 
-    record Reply(HttpStatusCode status, String body) {}
+    record Reply(HttpStatusCode status, String body) {
+    }
 
     @Test
     void sameKeyAndBodyReplaysWithoutSecondOperation() {

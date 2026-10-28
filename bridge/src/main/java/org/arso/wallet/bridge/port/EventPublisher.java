@@ -5,7 +5,8 @@ import java.util.Map;
 
 public interface EventPublisher {
 
-    record Message(String topic, String key, Object payload, Map<String, String> headers) {}
+    record Message(String topic, String key, Object payload, Map<String, String> headers) {
+    }
 
     final class PublishFailedException extends RuntimeException {
 
@@ -14,6 +15,8 @@ public interface EventPublisher {
         }
     }
 
-    /** Sends all messages and waits for all acks. Throws when any message was not acked. */
+    /**
+     * Sends all messages and waits for all acks. Throws when any message was not acked.
+     */
     void publishAll(List<Message> messages);
 }

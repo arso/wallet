@@ -1,8 +1,5 @@
 package org.arso.wallet.bridge.config;
 
-import java.net.URI;
-import java.time.Duration;
-import java.util.Map;
 import org.arso.wallet.bridge.adapter.kafka.KafkaEventPublisher;
 import org.arso.wallet.bridge.adapter.stream.StreamRunner;
 import org.arso.wallet.bridge.application.Bridge;
@@ -14,9 +11,14 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.ShardIteratorType;
 import software.amazon.awssdk.services.dynamodb.streams.DynamoDbStreamsClient;
 
+import java.net.URI;
+import java.time.Duration;
+import java.util.Map;
+
 public final class LocalRunnerMain {
 
-    private LocalRunnerMain() {}
+    private LocalRunnerMain() {
+    }
 
     public static void main(String[] args) {
         var endpoint = URI.create(Env.get("WALLET_DYNAMODB_ENDPOINT", "http://localhost:8000"));

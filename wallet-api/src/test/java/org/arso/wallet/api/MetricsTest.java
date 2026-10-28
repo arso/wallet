@@ -1,13 +1,14 @@
 package org.arso.wallet.api;
 
-import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.arso.wallet.testing.MetricsAssertions.assertNoIdsInLabels;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class MetricsTest extends ApiTest {
 

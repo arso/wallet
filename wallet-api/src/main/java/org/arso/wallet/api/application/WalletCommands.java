@@ -1,11 +1,15 @@
 package org.arso.wallet.api.application;
 
-import static java.net.HttpURLConnection.HTTP_ACCEPTED;
-import static java.net.HttpURLConnection.HTTP_CREATED;
-import static java.net.HttpURLConnection.HTTP_OK;
-import static org.arso.wallet.ledger.domain.DomainException.Code.DUPLICATE_DEPOSIT;
-import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_CANCELLABLE;
-import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_FOUND;
+import org.arso.wallet.api.port.BeneficiaryLookup;
+import org.arso.wallet.api.port.JsonWriter;
+import org.arso.wallet.ledger.application.Transactions;
+import org.arso.wallet.ledger.application.Transactions.Writes;
+import org.arso.wallet.ledger.domain.*;
+import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
+import org.arso.wallet.ledger.port.*;
+import org.arso.wallet.ledger.port.Conflict.DepositExists;
+import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
+import org.arso.wallet.ledger.port.TxItem.*;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -13,38 +17,14 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
-import org.arso.wallet.api.port.BeneficiaryLookup;
-import org.arso.wallet.api.port.JsonWriter;
-import org.arso.wallet.ledger.application.Transactions;
-import org.arso.wallet.ledger.application.Transactions.Writes;
-import org.arso.wallet.ledger.domain.Account;
-import org.arso.wallet.ledger.domain.AccountId;
-import org.arso.wallet.ledger.domain.AccountStatus;
-import org.arso.wallet.ledger.domain.Actor;
-import org.arso.wallet.ledger.domain.Counterparty;
-import org.arso.wallet.ledger.domain.Currency;
-import org.arso.wallet.ledger.domain.DomainException;
-import org.arso.wallet.ledger.domain.LedgerEntry.Deposited;
-import org.arso.wallet.ledger.domain.Money;
-import org.arso.wallet.ledger.domain.Payment;
-import org.arso.wallet.ledger.domain.PaymentId;
-import org.arso.wallet.ledger.domain.PaymentStatus;
-import org.arso.wallet.ledger.port.ConditionFailedException;
-import org.arso.wallet.ledger.port.Conflict.DepositExists;
-import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
-import org.arso.wallet.ledger.port.DepositRecord;
-import org.arso.wallet.ledger.port.LedgerMetrics;
-import org.arso.wallet.ledger.port.LedgerStore;
-import org.arso.wallet.ledger.port.TxItem;
-import org.arso.wallet.ledger.port.TxItem.PutAccount;
-import org.arso.wallet.ledger.port.TxItem.PutDeposit;
-import org.arso.wallet.ledger.port.TxItem.PutEntry;
-import org.arso.wallet.ledger.port.TxItem.PutPayment;
-import org.arso.wallet.ledger.port.TxItem.UpdatePayment;
+
+import static java.net.HttpURLConnection.*;
+import static org.arso.wallet.ledger.domain.DomainException.Code.*;
 
 public final class WalletCommands {
 
-    public record Settings(List<String> verificationSteps, Currency defaultCurrency) {}
+    public record Settings(List<String> verificationSteps, Currency defaultCurrency) {
+    }
 
     private final LedgerStore store;
     private final Transactions transactions;

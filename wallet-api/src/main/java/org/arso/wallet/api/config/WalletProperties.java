@@ -1,9 +1,10 @@
 package org.arso.wallet.api.config;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("wallet")
 public record WalletProperties(
@@ -14,13 +15,18 @@ public record WalletProperties(
         Beneficiary beneficiary,
         String defaultCurrency) {
 
-    public record DynamoDb(String tableName, URI endpoint, String region, int maxConnections, boolean createTable) {}
+    public record DynamoDb(String tableName, URI endpoint, String region, int maxConnections, boolean createTable) {
+    }
 
-    public record Lock(int maxAttempts, Duration maxBackoff) {}
+    public record Lock(int maxAttempts, Duration maxBackoff) {
+    }
 
-    public record Idempotency(Duration ttl) {}
+    public record Idempotency(Duration ttl) {
+    }
 
-    public record Verification(List<String> steps) {}
+    public record Verification(List<String> steps) {
+    }
 
-    public record Beneficiary(URI url, Duration timeout) {}
+    public record Beneficiary(URI url, Duration timeout) {
+    }
 }

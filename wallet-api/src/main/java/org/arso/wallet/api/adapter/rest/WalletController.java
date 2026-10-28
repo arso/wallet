@@ -1,22 +1,9 @@
 package org.arso.wallet.api.adapter.rest;
 
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
-
 import io.micrometer.common.KeyValue;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
-import java.util.function.BiFunction;
-import org.arso.wallet.api.application.ApiErrors;
-import org.arso.wallet.api.application.ApiResponse;
-import org.arso.wallet.api.application.Idem;
-import org.arso.wallet.api.application.Idempotency;
-import org.arso.wallet.api.application.WalletCommands;
-import org.arso.wallet.api.application.WalletQueries;
+import org.arso.wallet.api.application.*;
 import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.PaymentId;
@@ -26,12 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.filter.ServerHttpObservationFilter;
 import org.springframework.web.servlet.HandlerMapping;
 import tools.jackson.core.JacksonException;
@@ -39,6 +21,15 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.function.BiFunction;
+
+import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
 
 @RestController
 public class WalletController {

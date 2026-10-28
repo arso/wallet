@@ -1,16 +1,5 @@
 package org.arso.wallet.completion.application;
 
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_EXECUTING;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_REJECT;
-import static org.arso.wallet.ledger.application.CrashPoint.AFTER_STEP_WRITE;
-import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
-import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
-import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_REJECTED;
-
-import java.time.Clock;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import org.arso.wallet.completion.port.CompletionMetrics;
 import org.arso.wallet.completion.port.TransferPublisher;
 import org.arso.wallet.events.VerificationResult;
@@ -23,7 +12,19 @@ import org.arso.wallet.ledger.domain.Verification;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.ledger.port.StepWrite;
 
-/** Saga coordinator (spec 8.3, plan phase 7). Every decision is taken on the item returned by the step write. */
+import java.time.Clock;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+
+import static org.arso.wallet.ledger.application.CrashPoint.*;
+import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
+import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
+import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_REJECTED;
+
+/**
+ * Saga coordinator (spec 8.3, plan phase 7). Every decision is taken on the item returned by the step write.
+ */
 public final class Completion {
 
     static final int MAX_DETAILS = 100;
@@ -62,7 +63,8 @@ public final class Completion {
             }
             case StepWrite.Duplicate(var payment) -> evaluateAfterWrite(payment);
             case StepWrite.Late(var payment) -> metrics.lateResult(stepLabel(payment, result.step()));
-            case StepWrite.NotFound _ -> {}
+            case StepWrite.NotFound _ -> {
+            }
         }
     }
 
@@ -92,7 +94,8 @@ public final class Completion {
                 }
             }
             case EXECUTING -> publisher.publish(payment);
-            default -> {}
+            default -> {
+            }
         }
     }
 

@@ -1,8 +1,5 @@
 package org.arso.wallet.api.application;
 
-import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
-import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_FOUND;
-
 import org.arso.wallet.api.application.ResponseBodies.AccountBody;
 import org.arso.wallet.api.application.ResponseBodies.LedgerPage;
 import org.arso.wallet.api.application.ResponseBodies.PaymentBody;
@@ -10,6 +7,9 @@ import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.DomainException;
 import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.ledger.port.LedgerStore;
+
+import static org.arso.wallet.ledger.domain.DomainException.Code.INVALID_REQUEST;
+import static org.arso.wallet.ledger.domain.DomainException.Code.NOT_FOUND;
 
 public final class WalletQueries {
 

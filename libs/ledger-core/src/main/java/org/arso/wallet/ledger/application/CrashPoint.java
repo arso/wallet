@@ -14,7 +14,8 @@ public interface CrashPoint {
     String AFTER_TRANSFER = "after-transfer";
     String AFTER_REJECT = "after-reject";
 
-    CrashPoint NONE = (_, _) -> {};
+    CrashPoint NONE = (_, _) -> {
+    };
 
     void at(String step, PaymentId payment);
 }

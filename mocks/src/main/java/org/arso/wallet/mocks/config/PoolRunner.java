@@ -1,13 +1,15 @@
 package org.arso.wallet.mocks.config;
 
-import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.ledger.domain.Actor;
+import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.worker.WorkerPool;
 import org.springframework.context.SmartLifecycle;
 
 final class PoolRunner implements SmartLifecycle {
 
-    /** Mocks never write to DynamoDB (spec 8.2): a record that cannot be processed is counted and skipped. */
+    /**
+     * Mocks never write to DynamoDB (spec 8.2): a record that cannot be processed is counted and skipped.
+     */
     static final AccountHolds NO_HOLDS = new AccountHolds() {
         @Override
         public Result holdAccount(String accountId, String reason, String holdRef, Actor actor) {
