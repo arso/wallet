@@ -79,7 +79,7 @@ public final class KafkaEventPublisher implements EventPublisher, AutoCloseable 
     }
 
     /**
-     * W3C trace context starting a new sampled trace per record; the bridge exports no span itself (plan phase 10).
+     * W3C trace context starting a new sampled trace per record; the bridge exports no span itself.
      */
     private static String traceparent() {
         var random = ThreadLocalRandom.current();

@@ -23,7 +23,7 @@ import static org.arso.wallet.ledger.domain.PaymentStatus.REJECTED;
 import static org.arso.wallet.ledger.domain.RejectReason.VERIFICATION_REJECTED;
 
 /**
- * Saga coordinator (spec 8.3, plan phase 7). Every decision is taken on the item returned by the step write.
+ * Saga coordinator. Every decision is taken on the item returned by the step write.
  */
 public final class Completion {
 

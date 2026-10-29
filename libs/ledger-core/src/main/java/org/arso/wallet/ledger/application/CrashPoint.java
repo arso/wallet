@@ -3,7 +3,7 @@ package org.arso.wallet.ledger.application;
 import org.arso.wallet.ledger.domain.PaymentId;
 
 /**
- * Called at named steps (plan phase 1). No-op in production; tests throw here so the record is not marked done and is
+ * Called at named steps. No-op in production; tests throw here so the record is not marked done and is
  * handled again, like after a crash.
  */
 @FunctionalInterface

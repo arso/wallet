@@ -16,7 +16,7 @@ import static org.arso.wallet.ledger.domain.PaymentStatus.EXECUTING;
 import static org.arso.wallet.ledger.domain.RejectReason.EXECUTION_FAILED;
 
 /**
- * Transfer executor (spec 8.5, plan phase 8). Trusts a consistent read of the payment, never the message.
+ * Transfer executor. Trusts a consistent read of the payment, never the message.
  */
 public final class Executor {
 

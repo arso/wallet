@@ -1,6 +1,6 @@
 # timeout-checker
 
-Verification timeout and safety net for stuck payments. Plan: phase 9, section 5.6. Spec: 8.6, 9.6.
+Verification timeout and safety net for stuck payments.
 
 ## Flow
 

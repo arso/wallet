@@ -3,7 +3,7 @@ package org.arso.wallet.ledger.adapter.dynamodb;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
-// TODO: table is created from code for tests and local runs only; move to IaC for real environments (plan phase 2).
+// TODO: table is created from code for tests and local runs only; move to IaC for real environments.
 public final class TableSetup {
 
     private TableSetup() {

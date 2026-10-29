@@ -1,6 +1,6 @@
 # transfer-executor
 
-Sends the money for approved withdrawals. Plan: phase 8. Spec: 8.5, 9.7.
+Sends the money for approved withdrawals.
 
 ## Flow
 
@@ -32,7 +32,7 @@ Resilience4j, around each TransferService call. Unknown outcomes count as failur
 Worker pool failure policy (plan 5.6):
 
 - `complete` failing after TransferService said ok (throttling, conflicts): transient, retried. The retry calls TransferService again with the same key and gets the same answer. Never `NEEDS_REVIEW`.
-- Bug (unknown error) past its budget: account `ON_HOLD`, payment stays `EXECUTING`, no refund. The timeout checker re-drives it later (phase 9).
+- Bug (unknown error) past its budget: account `ON_HOLD`, payment stays `EXECUTING`, no refund. The timeout checker re-drives it later.
 
 ## Configuration
 

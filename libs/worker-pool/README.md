@@ -1,6 +1,6 @@
 # worker-pool
 
-Kafka consumer library shared by the three services that move payments forward. Plan: phase 5, section 5.6.
+Kafka consumer library shared by the three services that move payments forward.
 
 ## Why
 
@@ -41,9 +41,9 @@ the executor alone.
 
 | Service                      | Topic                  | Mode        | Why this mode                                               |
 |------------------------------|------------------------|-------------|-------------------------------------------------------------|
-| completion-service (phase 7) | `verification-results` | `KEYED`     | results of one payment must be applied in order             |
-| transfer-executor (phase 8)  | `transfer-requests`    | `UNORDERED` | one slow TransferService call must not delay other payments |
-| timeout-checker (phase 9)    | `withdraw-requests`    | `DELAYED`   | each record is handled at its due time                      |
+| completion-service           | `verification-results` | `KEYED`     | results of one payment must be applied in order             |
+| transfer-executor            | `transfer-requests`    | `UNORDERED` | one slow TransferService call must not delay other payments |
+| timeout-checker              | `withdraw-requests`    | `DELAYED`   | each record is handled at its due time                      |
 
 The verifier and AML mocks use it too (`UNORDERED`, `KEYED`), without holds. The bridge does not use it: it reads
 DynamoDB Streams, not Kafka.

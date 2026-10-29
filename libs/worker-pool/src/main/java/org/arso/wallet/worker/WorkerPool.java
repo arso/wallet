@@ -25,7 +25,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Kafka consumer that processes records of one partition in parallel (spec 8.4, plan phase 5).
+ * Kafka consumer that processes records of one partition in parallel.
  *
  * <p>One poll thread owns the consumer and all partition state. It hands records to workers, and workers report back
  * through {@code completions}. Each partition commits only up to its highest contiguous done offset, so a crash
