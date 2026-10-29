@@ -7,12 +7,13 @@ Kafka consumer library shared by the three services that move payments forward.
 A plain listener container (Spring Kafka) processes a partition in order, one record at a time, and handles errors per
 container. The payment flow needs more than that:
 
-- **No head-of-line blocking.** A transfer retry can take ~2.5 min. In partition order, every payment behind it would
-  wait.
+- **No head-of-line blocking.** A transfer retry takes ~2.5 min (up to ~5 min with jitter and read timeouts). In
+  partition order, every payment behind it would wait.
 - **Records due later.** The timeout checker acts at `requested_at + 1h`. Sleeping inside a listener would exceed
   `max.poll.interval.ms` and trigger a rebalance.
-- **No message is ever dropped or left stuck.** Offsets are committed only when contiguous. A record that can never be
-  processed puts its account `ON_HOLD` instead of going to a DLQ (spec change 21).
+- **No message is silently dropped.** Offsets are committed only when contiguous. A record that can never be processed
+  puts its account `ON_HOLD` instead of going to a DLQ (spec change 21); one with no account found is counted in
+  `unattributable_records_total`. Transient errors are retried until the outage ends.
 - **Bounded resources.** In-flight work is capped. Back pressure pauses partitions but keeps calling `poll()`, so the
   consumer never leaves the group.
 
@@ -26,8 +27,8 @@ partitions), but not the parts that matter here:
 - **A listener processes records one at a time per consumer thread.** Parallelism equals the number of consumers, not
   partitions. Handing records to an executor to get parallelism means writing our own dispatch anyway, and then
   `DefaultErrorHandler` no longer applies (it needs synchronous processing; it retries by seeking, which blocks the
-  partition, and it recovers to a DLQ).
-- **More partitions do not fix it.** They raise throughput, but a transfer retry (~2.5 min) or a timeout re-check (up to
+  partition, and its recoverer logs and skips the record or publishes it to a DLQ, never a hold).
+- **More partitions do not fix it.** They raise throughput, but a transfer retry (~2.5-5 min) or a timeout re-check (up to
   15 min) still blocks its partition. They also cost broker resources (replicas, smaller producer batches, worse
   compression), and the count can never go down.
 - **One pause flag per partition.** We need a set of pause reasons, so a back pressure resume never undoes a `NOT_DUE`

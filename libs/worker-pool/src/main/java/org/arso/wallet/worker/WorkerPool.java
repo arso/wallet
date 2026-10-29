@@ -44,10 +44,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * record not yet due, too many uncommitted offsets, or an open circuit. A record that keeps failing puts its account
  * on hold ({@link FailurePolicy}) instead of blocking the partition.
  *
- * <p>Why not Spring Kafka listener containers: a container processes one partition on one thread, so a single slow
- * record (a transfer retried for minutes, a verification timeout waiting an hour) stalls every record behind it, and
- * parallelism is capped by the partition count. Its {@code DefaultErrorHandler} retries by seeking back, which also
- * blocks the partition, or sends the record to a dead letter topic, which drops the per-account hold. Delayed
+ * <p>Why not Spring Kafka listener containers: a consumer thread processes its partitions one record at a time, so a
+ * single slow record (a transfer retried for minutes, a verification timeout waiting an hour) stalls every record
+ * behind it, and parallelism is capped by the partition count. Its {@code DefaultErrorHandler} retries by seeking back,
+ * which also blocks the partition, then logs and skips the record or sends it to a dead letter topic, never a
+ * per-account hold. Delayed
  * processing would need {@code sleep} or seek tricks that risk rebalances. This pool keeps the plain Kafka consumer
  * and adds only per-partition parallelism, contiguous commits, pausing and the hold policy.
  */
