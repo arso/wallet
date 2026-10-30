@@ -5,7 +5,7 @@ plugins {
 abstract class TestSlots : BuildService<BuildServiceParameters.None>
 
 val testSlots = gradle.sharedServices.registerIfAbsent("testSlots", TestSlots::class) {
-    maxParallelUsages = providers.gradleProperty("testParallelism").map(String::toInt).orElse(2)
+    maxParallelUsages = providers.gradleProperty("testParallelism").map(String::toInt).orElse(4)
 }
 
 subprojects {
