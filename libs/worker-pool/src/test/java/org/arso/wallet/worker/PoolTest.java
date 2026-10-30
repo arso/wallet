@@ -1,5 +1,6 @@
 package org.arso.wallet.worker;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -13,8 +14,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.arso.wallet.ledger.domain.Actor;
 import org.arso.wallet.testing.KafkaLocal;
 import org.arso.wallet.testing.TestLedger;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.AfterEach;
 
 import java.nio.charset.StandardCharsets;
@@ -50,9 +51,9 @@ abstract class PoolTest {
         pools.forEach(WorkerPool::stop);
     }
 
-    WorkerSettings settings(Mode mode, HoldTarget target) {
-        return WorkerSettings.of("test", Actor.COMPLETION_SERVICE, topic, mode, target)
-                .withBackoff(Duration.ofMillis(10), Duration.ofMillis(50));
+    WorkerSettings settings(Dispatch dispatch, HoldTarget target) {
+        return WorkerSettings.of("test", Actor.COMPLETION_SERVICE, topic, dispatch, target)
+                .withRetryBackoff(Duration.ofMillis(10), Duration.ofMillis(50));
     }
 
     WorkerPool start(WorkerSettings settings, RecordHandler handler) {
@@ -97,7 +98,7 @@ abstract class PoolTest {
     }
 
     double counter(String name) {
-        return meters.find(name).counters().stream().mapToDouble(c -> c.count()).sum();
+        return meters.find(name).counters().stream().mapToDouble(Counter::count).sum();
     }
 
     static void await(BooleanSupplier condition) {

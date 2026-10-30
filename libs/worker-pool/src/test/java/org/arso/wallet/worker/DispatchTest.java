@@ -2,8 +2,8 @@ package org.arso.wallet.worker;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.arso.wallet.worker.RecordHandler.Outcome;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -32,7 +32,7 @@ class DispatchTest extends PoolTest {
         send(0, "b", "1");
         send(0, "a", "2");
         send(0, "b", "2");
-        start(settings(Mode.KEYED, HoldTarget.PAYMENT_ID).withKeyed(4, 8), r -> {
+        start(settings(new Dispatch.Keyed(4, 8), HoldTarget.PAYMENT_ID), r -> {
             if (r.offset() == 0) {
                 release.await();
             }
@@ -57,7 +57,7 @@ class DispatchTest extends PoolTest {
             send(0, "k" + i, "v");
         }
         var done = new CopyOnWriteArrayList<Long>();
-        start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID), r -> {
+        start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID), r -> {
             if (r.offset() == 0) {
                 release.await();
             }
@@ -77,7 +77,7 @@ class DispatchTest extends PoolTest {
         for (int i = 0; i < 6; i++) {
             send(0, "k" + i, "v");
         }
-        start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID).withMaxInFlight(1), r -> {
+        start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID).withMaxInFlight(1), r -> {
             Thread.sleep(700);
             times.computeIfAbsent(r.offset(), _ -> new AtomicInteger()).incrementAndGet();
             return Outcome.DONE;
@@ -99,7 +99,7 @@ class DispatchTest extends PoolTest {
             send(1, "b" + i, "v");
         }
         var p0 = new AtomicInteger();
-        start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID).withMaxUncommitted(10), r -> {
+        start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID).withMaxUncommitted(10), r -> {
             if (r.partition() == 0) {
                 if (r.offset() == 0) {
                     release.await();
@@ -128,7 +128,7 @@ class DispatchTest extends PoolTest {
             seen.add(r.key());
             return Outcome.DONE;
         };
-        var settings = settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID).withMaxInFlight(4);
+        var settings = settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID).withMaxInFlight(4);
         var first = start(settings, handler);
         await(() -> seen.size() >= 40);
         start(settings, handler);
@@ -148,11 +148,11 @@ class DispatchTest extends PoolTest {
         }
         var handledAt = new ConcurrentHashMap<Long, Instant>();
         var due = new ConcurrentHashMap<Long, Instant>();
-        var settings = settings(Mode.DELAYED, HoldTarget.PAYMENT_ID).withDueAt(r -> {
+        var settings = settings(new Dispatch.Delayed(r -> {
             var at = Instant.ofEpochMilli(r.timestamp()).plus(delay);
             due.put(r.offset(), at);
             return at;
-        });
+        }), HoldTarget.PAYMENT_ID);
         start(settings, r -> {
             handledAt.put(r.offset(), Instant.now());
             return Outcome.DONE;
@@ -174,7 +174,7 @@ class DispatchTest extends PoolTest {
             send(0, "k" + i, "v");
         }
         var done = new CopyOnWriteArrayList<Long>();
-        var settings = settings(Mode.DELAYED, HoldTarget.PAYMENT_ID).withDueAt(r -> Instant.ofEpochMilli(r.timestamp()));
+        var settings = settings(new Dispatch.Delayed(r -> Instant.ofEpochMilli(r.timestamp())), HoldTarget.PAYMENT_ID);
         start(settings, r -> {
             if (times.computeIfAbsent(r.offset(), _ -> new AtomicInteger()).incrementAndGet() == 1 && r.offset() == 0) {
                 return new Outcome.RecheckAt(Instant.now().plusSeconds(2));
@@ -198,9 +198,8 @@ class DispatchTest extends PoolTest {
         var running = new AtomicInteger();
         var maxRunning = new AtomicInteger();
         var outageEnds = Instant.now().plusSeconds(2);
-        var settings = settings(Mode.DELAYED, HoldTarget.PAYMENT_ID)
-                .withMaxInFlight(3)
-                .withDueAt(r -> Instant.ofEpochMilli(r.timestamp()));
+        var settings = settings(new Dispatch.Delayed(r -> Instant.ofEpochMilli(r.timestamp())), HoldTarget.PAYMENT_ID)
+                .withMaxInFlight(3);
         start(settings, r -> {
             maxRunning.accumulateAndGet(running.incrementAndGet(), Math::max);
             try {

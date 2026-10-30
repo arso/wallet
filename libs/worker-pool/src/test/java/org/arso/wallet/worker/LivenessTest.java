@@ -2,8 +2,8 @@ package org.arso.wallet.worker;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.arso.wallet.worker.RecordHandler.Outcome;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -16,11 +16,11 @@ class LivenessTest extends PoolTest {
     @Test
     void rebalanceKeepsBothPollThreadsAlive() throws Exception {
         createTopic(2);
-        var a = start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID), _ -> Outcome.DONE);
+        var a = start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID), _ -> Outcome.DONE);
         send(0, "k", "v");
         await(() -> committed(0) == 1);
 
-        var b = start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID), _ -> Outcome.DONE);
+        var b = start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID), _ -> Outcome.DONE);
         await(() -> members() == 2);
 
         assertThat(a.isAlive()).isTrue();
@@ -32,14 +32,14 @@ class LivenessTest extends PoolTest {
         createTopic(1);
         var seen = ConcurrentHashMap.<String>newKeySet();
         Map<String, Object> sameInstance = Map.of(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, "instance-1");
-        var a = start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID), r -> {
+        var a = start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID), r -> {
             seen.add("a:" + new String(r.value()));
             return Outcome.DONE;
         }, sameInstance);
         send(0, "k", "first");
         await(() -> seen.contains("a:first"));
 
-        var b = start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID), r -> {
+        var b = start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID), r -> {
             seen.add("b:" + new String(r.value()));
             return Outcome.DONE;
         }, sameInstance);

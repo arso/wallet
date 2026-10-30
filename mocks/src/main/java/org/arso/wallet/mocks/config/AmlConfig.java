@@ -11,8 +11,8 @@ import org.arso.wallet.mocks.port.WalletAdmin.WalletUnavailableException;
 import org.arso.wallet.worker.ErrorClassifier;
 import org.arso.wallet.worker.WorkerPool;
 import org.arso.wallet.worker.WorkerSettings;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +28,7 @@ public class AmlConfig {
         var monitor = new AmlMonitor(new HttpWalletAdmin(config.walletUrl(), config.timeout()), config.blockThreshold());
         return new PoolRunner(new WorkerPool(
                 WorkerPool.consumerConfig(properties.kafkaBootstrapServers(), "aml-mock", null),
-                WorkerSettings.of("aml-mock", Actor.AML, Events.LEDGER_EVENTS, Mode.KEYED, HoldTarget.ACCOUNT_ID),
+                WorkerSettings.of("aml-mock", Actor.AML, Events.LEDGER_EVENTS, new Dispatch.Keyed(16, 64), HoldTarget.ACCOUNT_ID),
                 new AmlHandler(monitor),
                 ErrorClassifier.defaults().withTransient(WalletUnavailableException.class),
                 PoolRunner.NO_HOLDS,

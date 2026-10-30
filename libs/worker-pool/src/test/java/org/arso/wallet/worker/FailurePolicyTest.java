@@ -5,8 +5,8 @@ import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.domain.AccountStatus;
 import org.arso.wallet.ledger.domain.PaymentId;
 import org.arso.wallet.worker.RecordHandler.Outcome;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.exception.SdkClientException;
 
@@ -29,7 +29,7 @@ class FailurePolicyTest extends PoolTest {
             send(0, "k" + i, "v");
         }
         var failures = new AtomicInteger();
-        start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID).withBackoff(Duration.ofMillis(100), Duration.ofMillis(100)), r -> {
+        start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID).withRetryBackoff(Duration.ofMillis(100), Duration.ofMillis(100)), r -> {
             if (r.offset() == 1 && failures.incrementAndGet() <= 10) {
                 throw SdkClientException.create("dynamodb down");
             }
@@ -53,7 +53,7 @@ class FailurePolicyTest extends PoolTest {
         send(0, payment.id().value(), "not json");
         send(0, payment.id().value(), "{\"event_id\":\"e\",\"schema_version\":1,\"payment_id\":\"p\",\"step\":\"aml\","
                 + "\"allowed\":true,\"decided_at\":\"2026-10-26T12:00:00.000Z\"}");
-        start(settings(Mode.KEYED, HoldTarget.PAYMENT_ID), r -> {
+        start(settings(new Dispatch.Keyed(16, 64), HoldTarget.PAYMENT_ID), r -> {
             EventJson.read(r.value(), VerificationResult.class);
             handled.add(r.offset());
             return Outcome.DONE;
@@ -76,10 +76,10 @@ class FailurePolicyTest extends PoolTest {
             send(0, id.value(), "ok");
         }
         var attempts = new AtomicInteger();
-        var pool = settings(Mode.UNORDERED, HoldTarget.ACCOUNT_ID)
+        var pool = settings(new Dispatch.Unordered(), HoldTarget.ACCOUNT_ID)
                 .withMaxInFlight(2)
-                .withBackoff(Duration.ofMillis(200), Duration.ofMillis(200))
-                .withUnknownBudget(3, Duration.ofMinutes(1));
+                .withRetryBackoff(Duration.ofMillis(200), Duration.ofMillis(200))
+                .withUnknownErrorBudget(3, Duration.ofMinutes(1));
         start(pool, r -> {
             if (r.offset() == 0) {
                 attempts.incrementAndGet();
@@ -102,7 +102,7 @@ class FailurePolicyTest extends PoolTest {
         var id = ledger.open();
         send(0, id.value(), "v");
         var attempts = new AtomicInteger();
-        start(settings(Mode.UNORDERED, HoldTarget.ACCOUNT_ID).withUnknownBudget(2, Duration.ofMinutes(1)), r -> {
+        start(settings(new Dispatch.Unordered(), HoldTarget.ACCOUNT_ID).withUnknownErrorBudget(2, Duration.ofMinutes(1)), r -> {
             if (attempts.incrementAndGet() <= 6) {
                 throw ErrorClassifierTest.dynamo(HTTP_BAD_REQUEST, "ExpiredTokenException");
             }
@@ -121,7 +121,7 @@ class FailurePolicyTest extends PoolTest {
         send(0, null, "no key");
         send(0, "not-a-ulid", "bad key");
         send(0, PaymentId.random().value(), "unknown payment");
-        start(settings(Mode.UNORDERED, HoldTarget.PAYMENT_ID), _ -> {
+        start(settings(new Dispatch.Unordered(), HoldTarget.PAYMENT_ID), _ -> {
             throw new PermanentRecordException("schema_version 9");
         });
 

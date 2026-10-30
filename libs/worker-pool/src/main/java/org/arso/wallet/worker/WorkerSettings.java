@@ -5,19 +5,17 @@ import org.arso.wallet.ledger.domain.Actor;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.function.Function;
 
 public record WorkerSettings(
         String service,
         Actor actor,
         String topic,
-        Mode mode,
+        Dispatch dispatch,
         HoldTarget holdTarget,
-        int keyedWorkers,
-        int keyedQueueCapacity,
         int maxInFlight,
         int maxUncommitted,
-        Function<ConsumerRecord<String, byte[]>, Instant> dueAt,
         Duration pollTimeout,
         Duration revokeWait,
         Duration shutdownWait,
@@ -26,10 +24,20 @@ public record WorkerSettings(
         int unknownMaxAttempts,
         Duration unknownMaxElapsed) {
 
-    public enum Mode {
-        KEYED,
-        UNORDERED,
-        DELAYED
+    public sealed interface Dispatch {
+
+        record Keyed(int workers, int queueCapacity) implements Dispatch {
+        }
+
+        record Unordered() implements Dispatch {
+        }
+
+        record Delayed(Function<ConsumerRecord<String, byte[]>, Instant> dueAt) implements Dispatch {
+
+            public Delayed {
+                Objects.requireNonNull(dueAt);
+            }
+        }
     }
 
     public enum HoldTarget {
@@ -37,45 +45,29 @@ public record WorkerSettings(
         PAYMENT_ID
     }
 
-    public static WorkerSettings of(String service, Actor actor, String topic, Mode mode, HoldTarget holdTarget) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, 16, 64, 64, 10_000, null,
+    public static WorkerSettings of(String service, Actor actor, String topic, Dispatch dispatch, HoldTarget holdTarget) {
+        return new WorkerSettings(service, actor, topic, dispatch, holdTarget, 64, 10_000,
                 Duration.ofMillis(100), Duration.ofSeconds(5), Duration.ofSeconds(30),
                 Duration.ofMillis(100), Duration.ofSeconds(30), 10, Duration.ofMinutes(5));
     }
 
-    public WorkerSettings withKeyed(int workers, int queueCapacity) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, workers, queueCapacity, maxInFlight,
-                maxUncommitted, dueAt, pollTimeout, revokeWait, shutdownWait, initialBackoff, maxBackoff,
-                unknownMaxAttempts, unknownMaxElapsed);
-    }
-
     public WorkerSettings withMaxInFlight(int maxInFlight) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, keyedWorkers, keyedQueueCapacity, maxInFlight,
-                maxUncommitted, dueAt, pollTimeout, revokeWait, shutdownWait, initialBackoff, maxBackoff,
-                unknownMaxAttempts, unknownMaxElapsed);
+        return new WorkerSettings(service, actor, topic, dispatch, holdTarget, maxInFlight, maxUncommitted, pollTimeout,
+                revokeWait, shutdownWait, initialBackoff, maxBackoff, unknownMaxAttempts, unknownMaxElapsed);
     }
 
     public WorkerSettings withMaxUncommitted(int maxUncommitted) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, keyedWorkers, keyedQueueCapacity, maxInFlight,
-                maxUncommitted, dueAt, pollTimeout, revokeWait, shutdownWait, initialBackoff, maxBackoff,
-                unknownMaxAttempts, unknownMaxElapsed);
+        return new WorkerSettings(service, actor, topic, dispatch, holdTarget, maxInFlight, maxUncommitted, pollTimeout,
+                revokeWait, shutdownWait, initialBackoff, maxBackoff, unknownMaxAttempts, unknownMaxElapsed);
     }
 
-    public WorkerSettings withDueAt(Function<ConsumerRecord<String, byte[]>, Instant> dueAt) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, keyedWorkers, keyedQueueCapacity, maxInFlight,
-                maxUncommitted, dueAt, pollTimeout, revokeWait, shutdownWait, initialBackoff, maxBackoff,
-                unknownMaxAttempts, unknownMaxElapsed);
+    public WorkerSettings withRetryBackoff(Duration initial, Duration max) {
+        return new WorkerSettings(service, actor, topic, dispatch, holdTarget, maxInFlight, maxUncommitted, pollTimeout,
+                revokeWait, shutdownWait, initial, max, unknownMaxAttempts, unknownMaxElapsed);
     }
 
-    public WorkerSettings withBackoff(Duration initial, Duration max) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, keyedWorkers, keyedQueueCapacity, maxInFlight,
-                maxUncommitted, dueAt, pollTimeout, revokeWait, shutdownWait, initial, max, unknownMaxAttempts,
-                unknownMaxElapsed);
-    }
-
-    public WorkerSettings withUnknownBudget(int maxAttempts, Duration maxElapsed) {
-        return new WorkerSettings(service, actor, topic, mode, holdTarget, keyedWorkers, keyedQueueCapacity, maxInFlight,
-                maxUncommitted, dueAt, pollTimeout, revokeWait, shutdownWait, initialBackoff, maxBackoff, maxAttempts,
-                maxElapsed);
+    public WorkerSettings withUnknownErrorBudget(int maxAttempts, Duration maxElapsed) {
+        return new WorkerSettings(service, actor, topic, dispatch, holdTarget, maxInFlight, maxUncommitted, pollTimeout,
+                revokeWait, shutdownWait, initialBackoff, maxBackoff, maxAttempts, maxElapsed);
     }
 }

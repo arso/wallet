@@ -21,8 +21,8 @@ import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.worker.ErrorClassifier;
 import org.arso.wallet.worker.WorkerPool;
 import org.arso.wallet.worker.WorkerSettings;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
@@ -109,10 +109,10 @@ public class ExecutorConfig {
         var kafka = properties.kafka();
         var workers = properties.workers();
         var settings = WorkerSettings.of(
-                        "transfer-executor", Actor.TRANSFER_EXECUTOR, Events.TRANSFER_REQUESTS, Mode.UNORDERED,
-                        HoldTarget.PAYMENT_ID)
+                        "transfer-executor", Actor.TRANSFER_EXECUTOR, Events.TRANSFER_REQUESTS,
+                        new Dispatch.Unordered(), HoldTarget.PAYMENT_ID)
                 .withMaxInFlight(workers.maxInFlight())
-                .withUnknownBudget(workers.unknownMaxAttempts(), workers.unknownMaxElapsed());
+                .withUnknownErrorBudget(workers.unknownMaxAttempts(), workers.unknownMaxElapsed());
         var pool = new WorkerPool(
                 WorkerPool.consumerConfig(kafka.bootstrapServers(), kafka.groupId(), kafka.instanceId()),
                 settings,

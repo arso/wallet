@@ -16,8 +16,8 @@ import org.arso.wallet.worker.AckedProducer;
 import org.arso.wallet.worker.ErrorClassifier;
 import org.arso.wallet.worker.WorkerPool;
 import org.arso.wallet.worker.WorkerSettings;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
@@ -66,11 +66,11 @@ public class CheckerConfig {
         var workers = properties.workers();
         var handler = new WithdrawRequestHandler(checker, properties.verificationTimeout());
         var settings = WorkerSettings.of(
-                        "timeout-checker", Actor.TIMEOUT_CHECKER, Events.WITHDRAW_REQUESTS, Mode.DELAYED,
+                        "timeout-checker", Actor.TIMEOUT_CHECKER, Events.WITHDRAW_REQUESTS,
+                        new Dispatch.Delayed(handler::dueAt),
                         HoldTarget.PAYMENT_ID)
-                .withDueAt(handler::dueAt)
                 .withMaxInFlight(workers.maxInFlight())
-                .withUnknownBudget(workers.unknownMaxAttempts(), workers.unknownMaxElapsed());
+                .withUnknownErrorBudget(workers.unknownMaxAttempts(), workers.unknownMaxElapsed());
         return new WorkerPool(
                 WorkerPool.consumerConfig(kafka.bootstrapServers(), kafka.groupId(), kafka.instanceId()),
                 settings,

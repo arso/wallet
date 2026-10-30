@@ -15,7 +15,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.arso.wallet.ledger.port.AccountHolds;
 import org.arso.wallet.worker.Partition.Pause;
 import org.arso.wallet.worker.RecordHandler.Outcome;
-import org.arso.wallet.worker.WorkerSettings.Mode;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -31,12 +31,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * through {@code completions}. Each partition commits only up to its highest contiguous done offset, so a crash
  * redelivers unfinished records and never skips one. Handlers must be idempotent.
  *
- * <p>Dispatch modes ({@link Mode}):
+ * <p>Dispatch modes ({@link Dispatch}):
  * <ul>
- *   <li>{@code KEYED}: a fixed set of workers with bounded queues, picked by key hash, so records with the same key
+ *   <li>{@code Keyed}: a fixed set of workers with bounded queues, picked by key hash, so records with the same key
  *       run in order.
- *   <li>{@code UNORDERED}: one virtual thread per record, capped by a semaphore.
- *   <li>{@code DELAYED}: like {@code UNORDERED}, but a record starts only at its due time.
+ *   <li>{@code Unordered}: one virtual thread per record, capped by a semaphore.
+ *   <li>{@code Delayed}: like {@code Unordered}, but a record starts only at its due time.
  * </ul>
  *
  * <p>Flow control pauses a partition instead of blocking the poll thread, so {@code poll()} keeps running and the
@@ -71,13 +71,13 @@ public final class WorkerPool implements Runnable {
     private final ConcurrentLinkedQueue<Completion> completions = new ConcurrentLinkedQueue<>();
     // records due for another look (RecheckAt), filled by the timer
     private final ConcurrentLinkedQueue<ConsumerRecord<String, byte[]>> rechecks = new ConcurrentLinkedQueue<>();
-    // one virtual thread per record (UNORDERED, DELAYED) or per keyed worker (KEYED)
+    // one virtual thread per record (Unordered, Delayed) or per keyed worker (Keyed)
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
     // schedules rechecks
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().factory());
-    // caps records in flight in UNORDERED and DELAYED modes
+    // caps records in flight in Unordered and Delayed modes
     private final Semaphore permits;
-    // KEYED mode: one bounded queue per worker; a key always maps to the same queue, keeping its order
+    // Keyed mode: one bounded queue per worker; a key always maps to the same queue, keeping its order
     private final List<BlockingQueue<ConsumerRecord<String, byte[]>>> queues = new ArrayList<>();
     // gauge values, written by the poll thread
     private final AtomicLong oldestOpenMillis = new AtomicLong();
@@ -119,9 +119,9 @@ public final class WorkerPool implements Runnable {
         this.settings = settings;
         this.policy = new FailurePolicy(handler, classifier, holds, settings, meters);
         this.permits = new Semaphore(settings.maxInFlight());
-        if (settings.mode() == Mode.KEYED) {
-            for (int i = 0; i < settings.keyedWorkers(); i++) {
-                var queue = new ArrayBlockingQueue<ConsumerRecord<String, byte[]>>(settings.keyedQueueCapacity());
+        if (settings.dispatch() instanceof Dispatch.Keyed(var workers, var queueCapacity)) {
+            for (int i = 0; i < workers; i++) {
+                var queue = new ArrayBlockingQueue<ConsumerRecord<String, byte[]>>(queueCapacity);
                 queues.add(queue);
                 executor.execute(() -> keyedWorker(queue));
             }
@@ -253,7 +253,7 @@ public final class WorkerPool implements Runnable {
     }
 
     private boolean start(ConsumerRecord<String, byte[]> record) {
-        if (settings.mode() == Mode.KEYED) {
+        if (settings.dispatch() instanceof Dispatch.Keyed) {
             var key = record.key() == null ? 0 : record.key().hashCode();
             return queues.get(Math.floorMod(key, queues.size())).offer(record);
         }
@@ -369,11 +369,11 @@ public final class WorkerPool implements Runnable {
     }
 
     private Instant due(ConsumerRecord<String, byte[]> record) {
-        if (settings.mode() != Mode.DELAYED) {
+        if (!(settings.dispatch() instanceof Dispatch.Delayed(var dueAt))) {
             return null;
         }
         try {
-            return settings.dueAt().apply(record);
+            return dueAt.apply(record);
         } catch (RuntimeException e) {
             return null;
         }

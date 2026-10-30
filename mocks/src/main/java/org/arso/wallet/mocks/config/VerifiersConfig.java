@@ -11,8 +11,8 @@ import org.arso.wallet.worker.AckedProducer;
 import org.arso.wallet.worker.ErrorClassifier;
 import org.arso.wallet.worker.WorkerPool;
 import org.arso.wallet.worker.WorkerSettings;
+import org.arso.wallet.worker.WorkerSettings.Dispatch;
 import org.arso.wallet.worker.WorkerSettings.HoldTarget;
-import org.arso.wallet.worker.WorkerSettings.Mode;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
@@ -45,8 +45,8 @@ public class VerifiersConfig {
         var config = properties.verifiers();
         var runners = config.steps().stream().map(step -> new PoolRunner(new WorkerPool(
                         WorkerPool.consumerConfig(properties.kafkaBootstrapServers(), "verifier-" + step, null),
-                        WorkerSettings.of("verifier-" + step, Actor.INTERNAL, Events.WITHDRAW_REQUESTS, Mode.UNORDERED,
-                                        HoldTarget.PAYMENT_ID)
+                        WorkerSettings.of("verifier-" + step, Actor.INTERNAL, Events.WITHDRAW_REQUESTS,
+                                        new Dispatch.Unordered(), HoldTarget.PAYMENT_ID)
                                 .withMaxInFlight(config.maxInFlight()),
                         new VerifierHandler(step, verifiers),
                         ErrorClassifier.defaults(),
