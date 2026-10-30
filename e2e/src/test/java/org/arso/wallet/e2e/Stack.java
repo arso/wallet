@@ -30,7 +30,9 @@ final class Stack {
             .withNetwork(NETWORK)
             .withNetworkAliases("kafka")
             .withListener(KAFKA_URL)
-            .withEnv("KAFKA_NUM_PARTITIONS", "8");
+            .withEnv("KAFKA_NUM_PARTITIONS", "8")
+            .withCommand("sh", "-c", "until grep -qs '^/etc/kafka/docker/run' /tmp/testcontainers_start.sh; do sleep 0.1; done; "
+                    + "exec bash /tmp/testcontainers_start.sh");
     private static final GenericContainer<?> WALLET_API = app("wallet-api", 8081, 8080)
             .withNetworkAliases("wallet-api")
             .withEnv("WALLET_DYNAMODB_ENDPOINT", DYNAMODB_URL)
