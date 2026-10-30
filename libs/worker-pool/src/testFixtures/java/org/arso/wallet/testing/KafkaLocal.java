@@ -15,13 +15,23 @@ import java.util.Map;
 
 public final class KafkaLocal {
 
-    private static final KafkaContainer CONTAINER = new KafkaContainer("apache/kafka:4.1.0");
+    private static final KafkaContainer CONTAINER = container();
 
     static {
         CONTAINER.start();
     }
 
     private KafkaLocal() {
+    }
+
+    /**
+     * The stock command execs the start script as soon as it exists, which can hit the file while Docker
+     * is still writing it and exit with 126. Wait for the last line and run it through bash instead.
+     */
+    public static KafkaContainer container() {
+        var script = "/tmp/testcontainers_start.sh";
+        return new KafkaContainer("apache/kafka:4.1.0").withCommand("sh", "-c",
+                "until grep -qs '^/etc/kafka/docker/run' " + script + "; do sleep 0.1; done; exec bash " + script);
     }
 
     public static String bootstrapServers() {

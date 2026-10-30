@@ -17,10 +17,10 @@ import org.arso.wallet.events.WithdrawRequest;
 import org.arso.wallet.events.json.EventJson;
 import org.arso.wallet.ledger.domain.Counterparty;
 import org.arso.wallet.testing.DynamoDbLocal;
+import org.arso.wallet.testing.KafkaLocal;
 import org.arso.wallet.testing.TestLedger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.kafka.KafkaContainer;
 import software.amazon.awssdk.services.dynamodb.model.ShardIteratorType;
 
 import java.nio.charset.StandardCharsets;
@@ -35,14 +35,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class KafkaEventPublisherTest {
 
-    static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.1.0");
-
-    static {
-        KAFKA.start();
-    }
-
     final TestLedger ledger = new TestLedger();
-    final KafkaEventPublisher publisher = KafkaEventPublisher.create(KAFKA.getBootstrapServers(), Map.of());
+    final KafkaEventPublisher publisher = KafkaEventPublisher.create(KafkaLocal.bootstrapServers(), Map.of());
 
     @AfterEach
     void close() {
@@ -79,7 +73,7 @@ class KafkaEventPublisherTest {
     @Test
     void messageNotAckedFailsTheBatch() {
         try (var small = KafkaEventPublisher.create(
-                KAFKA.getBootstrapServers(), Map.of(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 2048))) {
+                KafkaLocal.bootstrapServers(), Map.of(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 2048))) {
             var id = ledger.open();
             var huge = ledger.deposit(id, 100, new Counterparty("p-1", "x".repeat(5000), "****1234", "hmac:1", "PL"));
             var messages = List.of(EventMapper.messages(ledger.entry(id, 1)).getFirst(), EventMapper.messages(huge).getFirst());
@@ -92,7 +86,7 @@ class KafkaEventPublisherTest {
 
     static List<ConsumerRecord<String, byte[]>> consume(String topic, String key, int expected) {
         var settings = Map.<String, Object>of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KafkaLocal.bootstrapServers(),
                 ConsumerConfig.GROUP_ID_CONFIG, "test-" + UUID.randomUUID(),
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         try (var consumer = new KafkaConsumer<>(settings, new StringDeserializer(), new ByteArrayDeserializer())) {

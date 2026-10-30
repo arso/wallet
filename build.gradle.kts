@@ -2,6 +2,14 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
 }
 
+abstract class TestSlots : BuildService<BuildServiceParameters.None>
+
+val testSlots = gradle.sharedServices.registerIfAbsent("testSlots", TestSlots::class) {
+    maxParallelUsages = providers.gradleProperty("testParallelism")
+        .map(String::toInt)
+        .orElse(minOf(gradle.startParameter.maxWorkerCount, 4))
+}
+
 subprojects {
     apply(plugin = "java-library")
 
@@ -25,6 +33,7 @@ subprojects {
 
     tasks.withType<Test> {
         useJUnitPlatform()
+        usesService(testSlots)
         jvmArgs("-Xshare:off", "--enable-native-access=ALL-UNNAMED")
         systemProperty("management.tracing.export.otlp.enabled", "false")
     }

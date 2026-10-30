@@ -18,5 +18,5 @@ dependencies {
     runtimeOnly(libs.slf4j.jdk.platform.logging)
 
     testImplementation(testFixtures(project(":libs:ledger-core")))
-    testImplementation(libs.testcontainers.kafka)
+    testImplementation(testFixtures(project(":libs:worker-pool")))
 }
