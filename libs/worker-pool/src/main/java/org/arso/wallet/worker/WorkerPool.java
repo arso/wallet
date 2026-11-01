@@ -335,7 +335,8 @@ public final class WorkerPool implements Runnable {
     private void commit(Collection<Partition> selected, boolean sync) {
         var offsets = new HashMap<TopicPartition, OffsetAndMetadata>();
         for (var p : selected) {
-            if (p.position() >= 0 && p.commitDue()) {
+            // a sync commit is the last one before revoke or shutdown, so it resends even an unchanged position
+            if (p.position() != Partition.NO_OFFSET && (sync || p.commitDue())) {
                 offsets.put(p.tp, new OffsetAndMetadata(p.position()));
                 p.committed(p.position());
             }
@@ -346,7 +347,19 @@ public final class WorkerPool implements Runnable {
         if (sync) {
             consumer.commitSync(offsets);
         } else {
-            consumer.commitAsync(offsets, null);
+            consumer.commitAsync(offsets, this::asyncCommitDone);
+        }
+    }
+
+    // called on the poll thread, inside poll()
+    private void asyncCommitDone(Map<TopicPartition, OffsetAndMetadata> sent, Exception error) {
+        if (error != null) {
+            sent.forEach((tp, offset) -> {
+                var p = partitions.get(tp);
+                if (p != null) {
+                    p.commitFailed(offset.offset());
+                }
+            });
         }
     }
 

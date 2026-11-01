@@ -29,12 +29,14 @@ final class Partition {
     record Pending(ConsumerRecord<String, byte[]> record, Instant due) {
     }
 
+    static final long NO_OFFSET = -1;
+
     final TopicPartition tp;
     final ArrayDeque<Pending> pending = new ArrayDeque<>();
     final Set<Pause> reasons = EnumSet.noneOf(Pause.class);
     private final TreeMap<Long, Long> open = new TreeMap<>();
-    private long next = -1;
-    private long committed = -1;
+    private long next = NO_OFFSET;
+    private long committed = NO_OFFSET;
     int inFlight;
     boolean paused;
 
@@ -65,7 +67,7 @@ final class Partition {
     }
 
     long uncommitted() {
-        return next < 0 ? 0 : next - position();
+        return next == NO_OFFSET ? 0 : next - position();
     }
 
     long oldestOpenSince(long nowMillis) {
@@ -78,5 +80,12 @@ final class Partition {
 
     void committed(long position) {
         committed = position;
+    }
+
+    // a failed async commit is due again, unless a newer commit was already sent
+    void commitFailed(long position) {
+        if (committed == position) {
+            committed = NO_OFFSET;
+        }
     }
 }
