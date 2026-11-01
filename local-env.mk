@@ -3,7 +3,7 @@ APPS := wallet-api bridge mocks completion-service transfer-executor timeout-che
 JAR = $(1)/build/libs/$(1)-0.0.1-SNAPSHOT.jar
 KAFKA := docker exec wallet-kafka-1 /opt/kafka/bin
 BOOTSTRAP := --bootstrap-server localhost:9092
-DDB := AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1 aws dynamodb --endpoint-url http://localhost:8000
+DDB := AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1 AWS_PAGER= aws dynamodb --endpoint-url http://localhost:8000 --output json
 TABLE := wallet-local
 
 .PHONY: up-deps down-deps clean-deps up-all down-all start-apps stop-apps restart-apps status logs \
@@ -59,19 +59,19 @@ run-%: ## Run one app in the foreground with Gradle, e.g. make run-mocks
 	$(GRADLE) :$*:$(if $(filter bridge,$*),run,bootRun)
 
 local-kafka-ledger-events: ## End offset per partition of ledger-events (local Kafka)
-	$(KAFKA)/kafka-get-offsets.sh $(BOOTSTRAP) --topic ledger-events
+	@$(KAFKA)/kafka-get-offsets.sh $(BOOTSTRAP) --topic ledger-events
 
 local-kafka-messages: ## Print ledger-events messages with keys, from the beginning (local Kafka)
-	$(KAFKA)/kafka-console-consumer.sh $(BOOTSTRAP) --topic ledger-events --from-beginning --property print.key=true --timeout-ms 5000
+	@$(KAFKA)/kafka-console-consumer.sh $(BOOTSTRAP) --topic ledger-events --from-beginning --formatter-property print.key=true --timeout-ms 5000
 
 local-kafka-consumer-lag-%: ## Lag of one consumer group, e.g. make local-kafka-consumer-lag-completion-service
-	$(KAFKA)/kafka-consumer-groups.sh $(BOOTSTRAP) --describe --group $*
+	@$(KAFKA)/kafka-consumer-groups.sh $(BOOTSTRAP) --describe --group $*
 
 local-ddb-count: ## Count items in the local DynamoDB table
-	$(DDB) scan --table-name $(TABLE) --select COUNT
+	@$(DDB) scan --table-name $(TABLE) --select COUNT
 
 local-ddb-items-preview: ## Show the first 20 items of the local DynamoDB table
-	$(DDB) scan --table-name $(TABLE) --max-items 20
+	@$(DDB) scan --table-name $(TABLE) --max-items 20
 
 define start
 if [ -f $(RUN)/$(1).pid ] && kill -0 $$(cat $(RUN)/$(1).pid) 2>/dev/null; then \
