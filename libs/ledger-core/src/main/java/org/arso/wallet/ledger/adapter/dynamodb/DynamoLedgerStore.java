@@ -180,7 +180,7 @@ public final class DynamoLedgerStore implements LedgerStore {
                             .build())
                     .build();
             // TTL deletes expired items lazily (up to days later), so an expired response may be overwritten
-            case PutResponse(var key, var response, var now) -> put(
+            case PutIdempotencyRecord(var key, var response, var now) -> put(
                     Items.response(key, response, now, idempotencyTtl),
                     NOT_EXISTS + " OR #t < :now",
                     Map.of("#t", "ttl"),
@@ -192,8 +192,8 @@ public final class DynamoLedgerStore implements LedgerStore {
 
     private Update update(UpdatePayment update) {
         var p = update.payment();
-        var names = new HashMap<String, String>(Map.of("#s", "status"));
-        var values = new HashMap<String, AttributeValue>(Map.of(
+        var names = new HashMap<>(Map.of("#s", "status"));
+        var values = new HashMap<>(Map.of(
                 ":s", str(p.status().name()),
                 ":expected", str(update.expected().name())));
         var set = new StringBuilder("SET #s = :s");

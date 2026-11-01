@@ -5,7 +5,7 @@ import org.arso.wallet.ledger.port.Conflict;
 import org.arso.wallet.ledger.port.Conflict.AccountChanged;
 import org.arso.wallet.ledger.port.Conflict.DepositExists;
 import org.arso.wallet.ledger.port.Conflict.PaymentChanged;
-import org.arso.wallet.ledger.port.Conflict.ResponseExists;
+import org.arso.wallet.ledger.port.Conflict.IdempotencyRecordExists;
 import org.arso.wallet.ledger.port.TransientStoreException;
 import org.arso.wallet.ledger.port.TxItem;
 import org.arso.wallet.ledger.port.TxItem.*;
@@ -55,7 +55,7 @@ final class TxOutcomes {
 
     private static int rank(TxItem item) {
         return switch (item) {
-            case PutResponse _ -> 0;
+            case PutIdempotencyRecord _ -> 0;
             case PutDeposit _ -> 1;
             case PutPayment _, UpdatePayment _ -> 2;
             case PutAccount _, CheckAccountActive _ -> 3;
@@ -65,7 +65,7 @@ final class TxOutcomes {
 
     private static Conflict conflict(TxItem item, Map<String, AttributeValue> old) {
         return switch (item) {
-            case PutResponse _ -> new ResponseExists(Items.response(old));
+            case PutIdempotencyRecord _ -> new IdempotencyRecordExists(Items.response(old));
             case PutDeposit _ -> new DepositExists(Items.deposit(old));
             case PutPayment _, UpdatePayment _ -> new PaymentChanged(old.isEmpty() ? null : Items.payment(old));
             case PutAccount _, CheckAccountActive _ -> new AccountChanged(old.isEmpty() ? null : Items.account(old));

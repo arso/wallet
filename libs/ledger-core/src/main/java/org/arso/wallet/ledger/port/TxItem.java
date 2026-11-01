@@ -25,7 +25,7 @@ public sealed interface TxItem {
     record CheckAccountActive(AccountId id) implements TxItem {
     }
 
-    record PutResponse(String key, StoredResponse response, Instant now) implements TxItem {
+    record PutIdempotencyRecord(String key, StoredResponse response, Instant now) implements TxItem {
     }
 
     record PutDeposit(DepositRecord deposit, Instant now) implements TxItem {

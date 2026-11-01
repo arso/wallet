@@ -5,13 +5,13 @@ import org.arso.wallet.ledger.domain.AccountId;
 import org.arso.wallet.ledger.domain.Currency;
 import org.arso.wallet.ledger.port.ConditionFailedException;
 import org.arso.wallet.ledger.port.Conflict.AccountChanged;
-import org.arso.wallet.ledger.port.Conflict.ResponseExists;
+import org.arso.wallet.ledger.port.Conflict.IdempotencyRecordExists;
 import org.arso.wallet.ledger.port.StoredResponse;
 import org.arso.wallet.ledger.port.TransientStoreException;
 import org.arso.wallet.ledger.port.TxItem;
 import org.arso.wallet.ledger.port.TxItem.PutAccount;
 import org.arso.wallet.ledger.port.TxItem.PutEntry;
-import org.arso.wallet.ledger.port.TxItem.PutResponse;
+import org.arso.wallet.ledger.port.TxItem.PutIdempotencyRecord;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.CancellationReason;
@@ -32,7 +32,7 @@ class TxOutcomesTest {
     static final Account.Change OPENED = Account.open(AccountId.random(), Currency.USD, NOW);
     static final StoredResponse STORED = new StoredResponse("hash", HTTP_ACCEPTED, "{}");
     static final List<TxItem> ITEMS = List.of(
-            new PutAccount(OPENED.account()), new PutEntry(OPENED.entry()), new PutResponse("key", STORED, NOW));
+            new PutAccount(OPENED.account()), new PutEntry(OPENED.entry()), new PutIdempotencyRecord("key", STORED, NOW));
 
     @Test
     void idempotencyWinsOverAccountAndLedgerConditions() {
@@ -42,7 +42,7 @@ class TxOutcomesTest {
                 failed(Items.response("key", STORED, NOW, Duration.ofHours(24))));
 
         assertThat(result).isInstanceOfSatisfying(ConditionFailedException.class, e -> assertThat(e.conflict())
-                .isEqualTo(new ResponseExists(STORED)));
+                .isEqualTo(new IdempotencyRecordExists(STORED)));
     }
 
     @Test

@@ -1,7 +1,7 @@
 package org.arso.wallet.api.application;
 
 import org.arso.wallet.ledger.port.ConditionFailedException;
-import org.arso.wallet.ledger.port.Conflict.ResponseExists;
+import org.arso.wallet.ledger.port.Conflict.IdempotencyRecordExists;
 import org.arso.wallet.ledger.port.LedgerStore;
 import org.arso.wallet.ledger.port.StoredResponse;
 
@@ -34,7 +34,7 @@ public final class Idempotency {
         try {
             return operation.get();
         } catch (RuntimeException e) {
-            if (e instanceof ConditionFailedException c && c.conflict() instanceof ResponseExists(var winner)) {
+            if (e instanceof ConditionFailedException c && c.conflict() instanceof IdempotencyRecordExists(var winner)) {
                 return replay(idem, winner);
             }
             var again = store.findResponse(idem.key(), clock.instant());

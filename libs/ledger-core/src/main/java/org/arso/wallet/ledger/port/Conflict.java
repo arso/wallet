@@ -5,7 +5,7 @@ import org.arso.wallet.ledger.domain.Payment;
 
 public sealed interface Conflict {
 
-    record ResponseExists(StoredResponse response) implements Conflict {
+    record IdempotencyRecordExists(StoredResponse response) implements Conflict {
     }
 
     record DepositExists(DepositRecord deposit) implements Conflict {
